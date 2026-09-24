@@ -25,7 +25,7 @@ async def lifespan(app):
             if run['status']=='running':
                 run['status']='interrupted'; app.state.store.put('runs',run['id'],run)
         yield
-        tasks = list(app.state.research.tasks.values())
+        tasks = list(app.state.research.tasks.values())+list(app.state.research.reflection_tasks.values())
         for task in tasks: task.cancel()
         await asyncio.gather(*tasks,return_exceptions=True)
         await app.state.automation.close()
@@ -43,6 +43,9 @@ class RunRequest(BaseModel):
     unique_tools: bool = False
     deep: bool = False
     instruction: str = Field(default='',max_length=2000)
+    persistence_level: int | None = Field(default=None,ge=1,le=4)
+    reflection_enabled: bool | None = None
+    reflection_level: int | None = Field(default=None,ge=1,le=4)
     @field_validator('query')
     @classmethod
     def nonempty(cls,v):
@@ -58,12 +61,28 @@ async def health():
 async def resources():
     return {'schema_version':2,'resources':app.state.store.all('catalog')}
 
+class ResearchSettings(BaseModel):
+    persistence_level: int = Field(default=2,ge=1,le=4)
+    reflection_enabled: bool = True
+    reflection_level: int = Field(default=2,ge=1,le=4)
+
+@app.get('/api/research-settings')
+async def research_settings():
+    return app.state.store.load('settings','research',ResearchSettings().model_dump())
+
+@app.post('/api/research-settings')
+async def save_research_settings(payload:ResearchSettings):
+    value=payload.model_dump();app.state.store.save('settings','research',value);return value
+
 @app.get('/api/runs')
 async def runs(): return app.state.store.list('runs')
 
 @app.post('/api/runs',status_code=202)
 async def submit(payload:RunRequest):
-    try: return app.state.research.submit(**payload.model_dump())
+    values=payload.model_dump();settings=app.state.store.load('settings','research',ResearchSettings().model_dump())
+    for key in ('persistence_level','reflection_enabled','reflection_level'):
+        if values[key] is None:values[key]=settings[key]
+    try: return app.state.research.submit(**values)
     except ValueError as exc: raise HTTPException(422,str(exc))
 
 @app.get('/api/runs/{id}')
@@ -97,6 +116,22 @@ async def resume(id:str):
 async def synthesize(id:str):
     try:return await app.state.research.resynthesize(id)
     except ValueError as exc:raise HTTPException(409,str(exc))
+
+class ReflectionRequest(BaseModel):
+    level: int = Field(default=2,ge=1,le=4)
+
+@app.post('/api/runs/{id}/reflect',status_code=202)
+async def reflect(id:str,payload:ReflectionRequest):
+    await run(id)
+    try:return app.state.research.start_reflection(id,payload.level)
+    except ValueError as exc:raise HTTPException(409,str(exc))
+
+@app.post('/api/runs/{id}/reflection/cancel')
+async def cancel_reflection(id:str):
+    await run(id);task=app.state.research.reflection_tasks.get(id)
+    if task:
+        task.cancel();await asyncio.gather(task,return_exceptions=True)
+    return await run(id)
 
 class JobRequest(BaseModel):
     kind: Literal['discover','generate','evaluate','proxies','quotas','metadata','repair_version','crawl','provision','services','discover_apis','pipeline_design','pipeline_evaluate','pipeline_repair','pipeline_monitor','api_monitor','integrate_api','workspace_repair']

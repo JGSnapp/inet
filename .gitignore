@@ -15,3 +15,5 @@ artifacts/*
 !artifacts/network-research-20260924/**
 !artifacts/deep-research-20260924/
 !artifacts/deep-research-20260924/**
+!artifacts/autonomy-20260924/
+!artifacts/autonomy-20260924/**

@@ -52,6 +52,26 @@ def test_unique_tools_mode_never_invokes_provider_twice(tmp_path,monkeypatch):
         store.db.close()
     asyncio.run(scenario())
 
+def test_persistence_levels_and_post_answer_reflection(tmp_path,monkeypatch):
+    tools=['official','httpx','curl_cffi','jina','httpx_mobile','trafilatura','readability','playwright','browser_agent','extra']
+    async def execute(*_):return {'sources':[{'url':'https://example.com','title':'Example','snippet':'evidence'}]}
+    monkeypatch.setattr(providers,'available',lambda mode:tools)
+    monkeypatch.setattr(providers,'execute',execute)
+    async def scenario():
+        store=Store(str(tmp_path/'state.db'));service=Research(store)
+        assert service.ranked_plan(tools,'example.com',1)==tools[:4]
+        assert len(service.ranked_plan(tools,'example.com',2))==6
+        assert len(service.ranked_plan(tools,'example.com',3))==8
+        assert len(service.ranked_plan(tools,'example.com',4))==len(tools)
+        run=service.submit('reflection test',fresh=True,reflection_enabled=True,reflection_level=1)
+        await service.tasks[run['id']]
+        if run['id'] in service.reflection_tasks:await service.reflection_tasks[run['id']]
+        done=store.get('runs',run['id'])
+        assert done['reflection']['status']=='completed'
+        assert done['reflection']['summary']['events_analyzed']>0
+        store.db.close()
+    asyncio.run(scenario())
+
 def test_negative_cache_recovery_and_quota(tmp_path,monkeypatch):
     monkeypatch.setattr(providers,'available',lambda mode:['tavily'])
     monkeypatch.setenv('TAVILY_MONTHLY_LIMIT','0')
@@ -99,6 +119,8 @@ def test_api_and_persistence(tmp_path,monkeypatch):
     monkeypatch.setenv('RUNTIME_DB',str(tmp_path/'state.db'))
     with TestClient(app) as client:
         assert client.get('/health').status_code==200
+        assert client.post('/api/research-settings',json={'persistence_level':4,'reflection_enabled':False,'reflection_level':3}).status_code==200
+        assert client.get('/api/research-settings').json()=={'persistence_level':4,'reflection_enabled':False,'reflection_level':3}
         assert client.post('/api/runs',json={'query':'  '}).status_code==422
         assert client.post('/api/runs',json={'query':'x','limit':100}).status_code==422
         assert client.get('/api/runs/unknown').status_code==404
@@ -111,6 +133,10 @@ def test_catalog_provenance():
     resources=json.loads(Path(__file__).with_name('resources.json').read_text(encoding='utf-8'))['resources']
     assert len({r['url'] for r in resources})==len(resources)
     assert all(r['description'] and r['provenance'] for r in resources)
+    added={r['id']:r for r in resources if r['id'] in {f'resource-{n}' for n in range(109,115)}}
+    assert len(added)==6
+    assert added['resource-114']['access_model']=='free_trial' and added['resource-114']['quota']['limit']==100
+    assert all(added[f'resource-{n}']['verification_status']=='metadata_verified' for n in range(109,115))
 
 def test_checkpoint_resume(tmp_path,monkeypatch):
     from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver

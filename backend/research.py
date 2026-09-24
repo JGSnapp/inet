@@ -32,12 +32,16 @@ class State(TypedDict, total=False):
     used_tools: list[str]
     deep: bool
     instruction: str
+    persistence_level: int
+    reflection_enabled: bool
+    reflection_level: int
 
 class Research:
     def __init__(self, store: Store, checkpointer=None, automation=None):
         self.store = store
         self.automation=automation
         self.tasks = {}
+        self.reflection_tasks = {}
         self.inflight = {}
         self.repair_lock = asyncio.Lock()
         self.capacity = asyncio.Semaphore(4)
@@ -55,6 +59,18 @@ class Research:
         run['events'].append(dict(id=len(run['events']), stage=stage, status=status, detail=detail, at=time.time(), **extra))
         self.store.put('runs',id,run)
 
+    @staticmethod
+    def effort_limit(level, total):
+        """Level 1 is four standard routes; level 4 exhausts every available route."""
+        return min(total, {1:4, 2:6, 3:8, 4:total}.get(int(level or 2), 6))
+
+    def ranked_plan(self, available, domain, level):
+        standard=['official','httpx','curl_cffi','jina']
+        ordered=sorted(available,key=lambda p:(p in standard, self.store.score(p,domain)),reverse=True)
+        if int(level or 2)==1:
+            ordered=[p for p in standard if p in available]+[p for p in ordered if p not in standard]
+        return ordered[:self.effort_limit(level,len(ordered))]
+
     async def plan(self,s):
         self.event(s['id'],'router','running','Определение операции и доступных адаптеров')
         if s['mode']=='fetch': await providers.public_url(s['query'])
@@ -64,8 +80,9 @@ class Research:
         available=self.automation.available(s['mode'],s.get('allow_archive',False),s.get('query')) if self.automation else providers.available(s['mode'])
         policy=self.automation.policy(s['query']) if self.automation else {}
         preferred=policy.get('preferred',[])
-        plan = sorted(available, key=lambda p:self.store.score(p,domain)+(5 if p in preferred else 0), reverse=True)
-        self.event(s['id'],'router','success',' → '.join(plan))
+        ranked = sorted(available, key=lambda p:self.store.score(p,domain)+(5 if p in preferred else 0), reverse=True)
+        plan = self.ranked_plan(ranked,domain,s.get('persistence_level',2))
+        self.event(s['id'],'router','success',f"Настойчивость {s.get('persistence_level',2)}/4 · "+' → '.join(plan))
         return dict(plan=plan,index=0,cached=bool(cached),result=cached or {})
 
     async def attempt(self,s):
@@ -186,12 +203,17 @@ class Research:
         async def read_site(source):
             url=source['url'];domain=(urlsplit(url).hostname or '').lower()
             available=self.automation.available('fetch',s.get('allow_archive',False),url) if self.automation else providers.available('fetch')
-            plan=sorted(available,key=lambda p:self.store.score(p,domain),reverse=True)
-            effort={'low':2,'medium':4,'high':6,'critical':len(plan)}[source['importance']]
-            plan=plan[:effort]
+            level=int(s.get('persistence_level',2))
+            plan=self.ranked_plan(available,domain,level)
+            effort=len(plan)
+            adaptive=level==4 and self.automation is not None
+            strategy={'importance':source['importance'],'persistence_level':level,'attempt_budget':effort+int(adaptive),'tools':plan+(['adaptive_pipeline'] if adaptive else [])}
+            self.event(s['id'],'deep_strategy','success',f'Настойчивость {level}/4 для {url}: до {strategy["attempt_budget"]} разных способов — '+', '.join(strategy['tools']),target=url)
+            attempted=0
             async with fetch_sem:
                 for tool in plan:
                     if self.automation and not self.automation.reserve(tool):continue
+                    attempted+=1
                     span_id=str(uuid4());started=time.monotonic();stage='deep:'+tool
                     self.event(s['id'],stage,'running',f'Чтение {url}',span_id=span_id,target=url,service_url=tool)
                     opts=self.automation.policy(url) if self.automation else {}
@@ -203,33 +225,34 @@ class Research:
                         content=result.get('content') or '\n'.join(x.get('snippet','') for x in result.get('sources',[]))
                         if len(content.strip())<80:raise ValueError('Недостаточно содержимого')
                         self.event(s['id'],stage,'success',f'Прочитано {len(content)} символов',span_id=span_id,target=url,duration_ms=round((time.monotonic()-started)*1000),service_url=tool)
-                        return {**source,'snippet':content[:1800],'read_provider':tool,'content_chars':len(content),'attempt_budget':effort}
+                        return {**source,'snippet':content[:1800],'read_provider':tool,'content_chars':len(content),'attempt_budget':effort,'attempts_made':attempted,'strategy':strategy}
                     except Exception as exc:
                         detail=str(exc) if isinstance(exc,ValueError) else type(exc).__name__
                         self.event(s['id'],stage,'error',detail,span_id=span_id,target=url,duration_ms=round((time.monotonic()-started)*1000),service_url=tool)
                     finally:providers.options.reset(token)
-                if source['importance']=='critical' and self.automation:
+                if adaptive:
+                    attempted+=1
                     span_id=str(uuid4());started=time.monotonic();stage='deep:adaptive_pipeline'
                     self.event(s['id'],stage,'running',f'Все готовые способы исчерпаны; проектирование pipeline для {url}',span_id=span_id,target=url)
                     try:
-                        report=await self.automation.pipeline_design({'url':url,'instruction':'Critical deep-research source. Inspect structured endpoints and build a robust extraction fallback.'})
+                        report=await self.automation.pipeline_design({'url':url,'instruction':'Deep-research source remained unread after the multi-tool strategy. Inspect structured endpoints and build a robust extraction fallback.'})
                         result=report.get('result') or {};content=result.get('content','')
                         if len(content.strip())<80:raise ValueError('Новый pipeline не извлёк содержимое')
                         self.event(s['id'],stage,'success',f'Новый pipeline прочитал {len(content)} символов',span_id=span_id,target=url,duration_ms=round((time.monotonic()-started)*1000))
-                        return {**source,'snippet':content[:1800],'read_provider':'adaptive_pipeline','content_chars':len(content),'attempt_budget':effort+1}
+                        return {**source,'snippet':content[:1800],'read_provider':'adaptive_pipeline','content_chars':len(content),'attempt_budget':effort+1,'attempts_made':attempted,'strategy':strategy}
                     except Exception as exc:
                         self.event(s['id'],stage,'error',str(exc) if isinstance(exc,ValueError) else type(exc).__name__,span_id=span_id,target=url,duration_ms=round((time.monotonic()-started)*1000))
-                elif source['importance']=='high' and self.automation:
-                    repair=self.automation.enqueue('pipeline_design',{'url':url,'instruction':'High-importance deep-research source remained unread after the foreground attempt budget.'})
-                    self.event(s['id'],'deep_research','skipped',f'Фоновый repair-loop поставлен в очередь: {repair["id"]}',target=url)
-            return {'_failure':True,**source,'attempt_budget':effort}
+                    if attempted<10:
+                        repair=self.automation.enqueue('discover',{'query':'open source web extraction browser tool python','integrate':True,'job_priority':50},priority=50)
+                        self.event(s['id'],'tool_development','running',f'Уровень 4 исчерпал {attempted} способов; запущен поиск нового инструмента: {repair["id"]}',target=url)
+            return {'_failure':True,**source,'attempt_budget':effort+int(adaptive),'attempts_made':attempted,'strategy':strategy}
         read=await asyncio.gather(*(read_site(source) for source in candidates))
         evidence=[item for item in read if item and not item.get('_failure')]
         unread=[item for item in read if item and item.get('_failure')]
         domains=len({urlsplit(x['url']).hostname for x in evidence})
         self.event(s['id'],'deep_research','success',f'Прочитано {len(evidence)} сайтов на {domains} доменах; найдено {len(unique)} источников')
         tiers={tier:sum(x['importance']==tier for x in candidates) for tier in ('critical','high','medium','low')}
-        primary.update(sources=evidence or unique,unread_sources=unread,content='\n\n'.join(f"## {x.get('title') or x['url']}\nURL: {x['url']}\n{x.get('snippet','')}" for x in (evidence or unique)),research_stats={'subqueries':len(angles)+1,'discovered_sources':len(unique),'sites_attempted':len(candidates),'sites_read':len(evidence),'sites_unread':len(unread),'domains_read':domains,'search_failures':search_failures,'importance':tiers},provider='deep:'+search_provider)
+        primary.update(sources=evidence or unique,unread_sources=unread,content='\n\n'.join(f"## {x.get('title') or x['url']}\nURL: {x['url']}\n{x.get('snippet','')}" for x in (evidence or unique)),research_stats={'subqueries':len(angles)+1,'discovered_sources':len(unique),'sites_attempted':len(candidates),'sites_read':len(evidence),'sites_unread':len(unread),'domains_read':domains,'search_failures':search_failures,'importance':tiers,'persistence_level':s.get('persistence_level',2),'site_attempt_budget':self.effort_limit(s.get('persistence_level',2),len(providers.available('fetch')))},provider='deep:'+search_provider)
         return primary
 
     async def repair(self,s):
@@ -277,10 +300,73 @@ class Research:
         result['answer'] = answer
         if not s.get('cached'): self.store.cache(s['key'],result,60 if result.get('error') else 1800)
         run = self.store.get('runs',s['id'])
-        run.update(status='failed' if result.get('error') else 'completed',result=result,finished_at=time.time(),cached=s.get('cached',False))
+        reflection_status='queued' if s.get('reflection_enabled') and not result.get('error') else 'disabled'
+        run.update(status='failed' if result.get('error') else 'completed',result=result,finished_at=time.time(),cached=s.get('cached',False),reflection={'status':reflection_status,'level':s.get('reflection_level',2),'events':[],'improvements':[]})
         self.store.put('runs',s['id'],run)
         self.event(s['id'],'result',run['status'],'Запрос завершён')
+        if reflection_status=='queued': self.start_reflection(s['id'],s.get('reflection_level',2))
         return {'result':result}
+
+    def reflection_event(self,id,status,detail,**extra):
+        run=self.store.get('runs',id)
+        reflection=run.setdefault('reflection',{'status':'running','level':2,'events':[],'improvements':[]})
+        reflection['events'].append({'id':len(reflection['events']),'status':status,'detail':detail,'at':time.time(),**extra})
+        self.store.put('runs',id,run)
+
+    def start_reflection(self,id,level=None):
+        current=self.reflection_tasks.get(id)
+        if current and not current.done(): return self.store.get('runs',id)
+        run=self.store.get('runs',id)
+        if not run or run.get('status')!='completed': raise ValueError('Рефлексия доступна после готового ответа')
+        level=max(1,min(4,int(level or run.get('reflection',{}).get('level',2))))
+        run['reflection']={'status':'queued','level':level,'events':[],'improvements':[]}
+        self.store.put('runs',id,run)
+        self.reflection_tasks[id]=asyncio.create_task(self.reflect(id,level))
+        return run
+
+    async def reflect(self,id,level):
+        try:
+            run=self.store.get('runs',id);reflection=run['reflection'];reflection['status']='running';self.store.put('runs',id,run)
+            self.reflection_event(id,'running','Анализ трассировки, отказов и покрытия источников',stage='trace_analysis')
+            events=run.get('events',[]);failures=[e for e in events if e.get('status')=='error']
+            result=run.get('result') or {};unread=result.get('unread_sources',[]);sources=result.get('sources',[])
+            failed_tools={e.get('stage','unknown'):0 for e in failures}
+            for event in failures: failed_tools[event.get('stage','unknown')]+=1
+            self.reflection_event(id,'success',f'Разобрано {len(events)} событий; отказов: {len(failures)}; непрочитанных сайтов: {len(unread)}',stage='trace_analysis')
+            targets=list(unread)
+            if level>=2 and not targets and failures: targets.extend(sources)
+            if level>=3: targets.extend(x for x in sources if x.get('url') not in {y.get('url') for y in targets})
+            budget={1:0,2:1,3:3,4:8}[level]
+            targets=targets[:budget]
+            improvements=[]
+            for index,target in enumerate(targets,1):
+                url=target.get('url')
+                if not url or not self.automation:continue
+                self.reflection_event(id,'running',f'Подход {index}/{len(targets)}: проектирование и live-проверка альтернативного pipeline',stage='pipeline_experiment',target=url)
+                try:
+                    report=await self.automation.pipeline_design({'url':url,'instruction':f'Post-answer reflection level {level}. Analyze prior failures and build a robust free/local extraction route. Preserve safety and verify extracted content.'})
+                    candidate={'url':url,'pipeline':report.get('version') or report.get('id'),'eligible':report.get('eligible',False)}
+                    improvements.append(candidate)
+                    self.reflection_event(id,'success',f'Pipeline проверен; допуск к рабочему маршруту: {"да" if candidate["eligible"] else "нет"}',stage='pipeline_experiment',target=url,pipeline=candidate['pipeline'])
+                except Exception as exc:
+                    self.reflection_event(id,'error',str(exc) if isinstance(exc,ValueError) else type(exc).__name__,stage='pipeline_experiment',target=url)
+            if level==4 and self.automation and unread:
+                job=self.automation.enqueue('discover',{'query':'open source free web extraction and research tools','integrate':True,'job_priority':30},priority=30)
+                improvements.append({'discovery_job':job['id']})
+                self.reflection_event(id,'success',f'Поиск дополнительного бесплатного инструмента поставлен в очередь: {job["id"]}',stage='tool_discovery')
+            run=self.store.get('runs',id);reflection=run['reflection'];reflection.update(status='completed',finished_at=time.time(),improvements=improvements,summary={'events_analyzed':len(events),'failures':len(failures),'failed_tools':failed_tools,'unread_sites':len(unread),'experiments':len(targets)})
+            self.store.put('runs',id,run)
+            self.reflection_event(id,'success','Рефлексия завершена; проверенные улучшения сохранены',stage='reflection_result')
+        except asyncio.CancelledError:
+            run=self.store.get('runs',id)
+            if run:
+                run.setdefault('reflection',{})['status']='cancelled';self.store.put('runs',id,run)
+            raise
+        except Exception as exc:
+            run=self.store.get('runs',id)
+            if run:
+                run.setdefault('reflection',{})['status']='failed';run['reflection']['error']=str(exc) if isinstance(exc,ValueError) else type(exc).__name__;self.store.put('runs',id,run)
+        finally:self.reflection_tasks.pop(id,None)
 
     async def resynthesize(self,id):
         run=self.store.get('runs',id)
@@ -298,7 +384,7 @@ class Research:
             self.event(id,'synthesis','error',str(exc) if isinstance(exc,ValueError) else type(exc).__name__)
             raise
 
-    def submit(self, query, mode='auto', limit=5, fresh=False,allow_archive=False,unique_tools=False,deep=False,instruction=''):
+    def submit(self, query, mode='auto', limit=5, fresh=False,allow_archive=False,unique_tools=False,deep=False,instruction='',persistence_level=2,reflection_enabled=True,reflection_level=2):
         query = query.strip()
         if mode=='auto': mode='fetch' if query.startswith(('http://','https://')) else 'search'
         if mode=='fetch': query = providers.normalize_url(query)
@@ -306,15 +392,16 @@ class Research:
         versions=[v['id'] for v in self.automation.registry.active(mode)] if self.automation else []
         if deep and mode!='search':raise ValueError('Глубокое исследование доступно только для поиска')
         if deep and unique_tools:raise ValueError('Глубокое исследование требует повторных поисковых вызовов; отключите режим одного вызова')
-        key = hashlib.sha256(json.dumps([mode,query,limit,allow_archive,unique_tools,deep,instruction,policy,versions,os.getenv('ENABLE_LLM','false'),os.getenv('AI_MODEL','')],sort_keys=True).encode()).hexdigest()
+        persistence_level=max(1,min(4,int(persistence_level)));reflection_level=max(1,min(4,int(reflection_level)))
+        key = hashlib.sha256(json.dumps([mode,query,limit,allow_archive,unique_tools,deep,instruction,persistence_level,policy,versions,os.getenv('ENABLE_LLM','false'),os.getenv('AI_MODEL','')],sort_keys=True).encode()).hexdigest()
         inflight_key = key+str(fresh)
         if inflight_key in self.inflight: return self.store.get('runs',self.inflight[inflight_key])
         id = str(uuid4())
         if len(self.tasks)>=50:raise ValueError('Очередь заполнена, дождитесь завершения запросов')
-        run = dict(id=id,query=query,mode=mode,limit=limit,allow_archive=allow_archive,unique_tools=unique_tools,deep=deep,instruction=instruction,status='running',created_at=time.time(),events=[],result=None)
+        run = dict(id=id,query=query,mode=mode,limit=limit,allow_archive=allow_archive,unique_tools=unique_tools,deep=deep,instruction=instruction,persistence_level=persistence_level,reflection_enabled=reflection_enabled,reflection_level=reflection_level,status='running',created_at=time.time(),events=[],result=None)
         self.store.put('runs',id,run)
         self.inflight[inflight_key]=id
-        self.tasks[id]=asyncio.create_task(self.run(dict(id=id,query=query,mode=mode,limit=limit,fresh=fresh,key=key,allow_archive=allow_archive,unique_tools=unique_tools,used_tools=[],deep=deep,instruction=instruction),inflight_key))
+        self.tasks[id]=asyncio.create_task(self.run(dict(id=id,query=query,mode=mode,limit=limit,fresh=fresh,key=key,allow_archive=allow_archive,unique_tools=unique_tools,used_tools=[],deep=deep,instruction=instruction,persistence_level=persistence_level,reflection_enabled=reflection_enabled,reflection_level=reflection_level),inflight_key))
         return run
 
     async def run(self,state,key,resume=False):

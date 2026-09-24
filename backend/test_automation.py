@@ -117,6 +117,12 @@ def test_emergency_job_promotes_existing_queue_entry(auto):
     ordered=sorted(auto.store.all('jobs'),key=lambda job:(-job.get('priority',0),job['created_at']))
     assert ordered[0]['id']==routine['id']
 
+def test_free_first_fetch_strategy_exposes_ten_distinct_tools(auto,monkeypatch):
+    monkeypatch.setenv('ENABLE_BROWSER','true');monkeypatch.setenv('ENABLE_LLM','true');monkeypatch.setenv('ENABLE_CURL','true')
+    tools=auto.available('fetch',False,'https://example.com/article')
+    assert len(tools)>=10 and len(tools)==len(set(tools))
+    assert {'official','httpx','httpx_mobile','curl_cffi','trafilatura','readability','jina','playwright','playwright_wait','browser_agent'}<=set(tools)
+
 def test_evaluation_to_runtime_and_regression(auto,monkeypatch):
     version=auto.registry.create(spec())
     live=json.loads(Path(__file__).with_name('live_benchmarks.json').read_text())

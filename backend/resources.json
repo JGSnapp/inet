@@ -2882,6 +2882,118 @@
           "original_url": "https://parallel.ai/"
         }
       ]
+    },
+    {
+      "id": "resource-109",
+      "name": "untidetect-tools",
+      "url": "https://github.com/TheGP/untidetect-tools",
+      "links": {
+        "homepage": "https://github.com/TheGP/untidetect-tools",
+        "repository": "https://github.com/TheGP/untidetect-tools"
+      },
+      "description": "Курируемый каталог anti-detect браузеров, библиотек, humanizing-инструментов, проверок отпечатка, CAPTCHA- и proxy-ресурсов. Используется как источник кандидатов; каждый проект требует отдельной проверки лицензии, стоимости и live-теста.",
+      "category": "discovery",
+      "integration_status": "candidate_source",
+      "verification_status": "metadata_verified",
+      "access_model": "mixed_free_and_paid",
+      "license": null,
+      "verified_at": 1790256000,
+      "quota": {"limit": null, "period": null, "verified_at": null},
+      "provenance": [{"source": "user_submission", "verified_with": "GitHub repository", "original_url": "https://github.com/TheGP/untidetect-tools"}]
+    },
+    {
+      "id": "resource-110",
+      "name": "stealth-browser-mcp",
+      "url": "https://github.com/vibheksoni/stealth-browser-mcp",
+      "links": {
+        "homepage": "https://github.com/vibheksoni/stealth-browser-mcp",
+        "repository": "https://github.com/vibheksoni/stealth-browser-mcp"
+      },
+      "description": "MIT-лицензированный MCP-сервер для управляемого Chrome-family браузера: DOM/CSS, CDP, сетевые события, hooks и снимки. Кандидат на изолированное развёртывание; доступ ограничивается публичными URL и безопасными исследовательскими действиями.",
+      "category": "fetch",
+      "integration_status": "candidate",
+      "verification_status": "metadata_verified",
+      "access_model": "open_source",
+      "license": "MIT",
+      "repository": "vibheksoni/stealth-browser-mcp",
+      "verified_at": 1790256000,
+      "quota": {"limit": null, "period": null, "verified_at": null},
+      "provenance": [{"source": "user_submission", "verified_with": "GitHub README and LICENSE", "original_url": "https://github.com/vibheksoni/stealth-browser-mcp"}]
+    },
+    {
+      "id": "resource-111",
+      "name": "camoufox",
+      "url": "https://github.com/daijro/camoufox",
+      "links": {
+        "homepage": "https://camoufox.com/python",
+        "repository": "https://github.com/daijro/camoufox"
+      },
+      "description": "Модифицированный Firefox с Python/Playwright API и согласованными browser fingerprints. Open-source кандидат для чтения динамических публичных страниц и тестирования собственных anti-bot систем; проект предупреждает, что обнаружение всё ещё возможно.",
+      "category": "fetch",
+      "integration_status": "candidate",
+      "verification_status": "metadata_verified",
+      "access_model": "open_source",
+      "license": "MPL-2.0",
+      "repository": "daijro/camoufox",
+      "verified_at": 1790256000,
+      "quota": {"limit": null, "period": null, "verified_at": null},
+      "provenance": [{"source": "user_submission", "verified_with": "GitHub README, pyproject and LICENSE", "original_url": "https://github.com/daijro/camoufox"}]
+    },
+    {
+      "id": "resource-112",
+      "name": "open-news",
+      "url": "https://github.com/alphap365/open-news",
+      "links": {
+        "homepage": "https://github.com/alphap365/open-news",
+        "repository": "https://github.com/alphap365/open-news"
+      },
+      "description": "MIT Python toolkit для поиска новостей, Google News, RSS discovery, дедупликации, ранжирования и извлечения статей. Кандидат на sandbox-адаптер; базовое HTTP-извлечение не требует платного API.",
+      "category": "search",
+      "integration_status": "candidate",
+      "verification_status": "metadata_verified",
+      "access_model": "open_source",
+      "license": "MIT",
+      "repository": "alphap365/open-news",
+      "verified_at": 1790256000,
+      "quota": {"limit": null, "period": null, "verified_at": null},
+      "provenance": [{"source": "user_submission", "verified_with": "GitHub README, pyproject and LICENSE", "original_url": "https://github.com/alphap365/open-news"}]
+    },
+    {
+      "id": "resource-113",
+      "name": "obscura",
+      "url": "https://github.com/h4ckf0r0day/obscura",
+      "links": {
+        "homepage": "https://github.com/h4ckf0r0day/obscura",
+        "repository": "https://github.com/h4ckf0r0day/obscura"
+      },
+      "description": "Apache-2.0 headless browser на Rust с JavaScript/V8, CDP, текстовым/Markdown extraction и Docker image. Кандидат на управляемый sandbox-сервис; цифры RAM и скорости считаются заявлениями проекта до собственного benchmark.",
+      "category": "fetch",
+      "integration_status": "candidate",
+      "verification_status": "metadata_verified",
+      "access_model": "open_source",
+      "license": "Apache-2.0",
+      "repository": "h4ckf0r0day/obscura",
+      "verified_at": 1790256000,
+      "quota": {"limit": null, "period": null, "verified_at": null},
+      "provenance": [{"source": "user_submission", "verified_with": "GitHub README and LICENSE", "original_url": "https://github.com/h4ckf0r0day/obscura"}]
+    },
+    {
+      "id": "resource-114",
+      "name": "Search1API",
+      "url": "https://s1.dev",
+      "links": {
+        "homepage": "https://s1.dev",
+        "documentation": "https://s1.dev/docs"
+      },
+      "description": "Search/crawl API для нескольких поисковых движков. При регистрации предоставляется 100 бесплатных кредитов без карты; базовый поиск стоит 1 кредит. После исчерпания trial требуется пополнение или переход на бесплатные self-hosted инструменты.",
+      "category": "search",
+      "integration_status": "candidate",
+      "verification_status": "metadata_verified",
+      "access_model": "free_trial",
+      "license": "proprietary_service",
+      "verified_at": 1790256000,
+      "quota": {"limit": 100, "period": "signup_trial", "verified_at": 1790256000},
+      "provenance": [{"source": "user_submission", "verified_with": "official product, pricing and API pages", "original_url": "https://s1.dev"}]
     }
   ]
 }

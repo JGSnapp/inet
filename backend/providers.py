@@ -55,7 +55,7 @@ def validate_content(text):
 
 def available(mode):
     if mode == 'fetch':
-        return ['httpx'] + (['curl_cffi'] if os.getenv('ENABLE_CURL')=='true' else []) + ['jina'] + (['playwright'] if os.getenv('ENABLE_BROWSER')=='true' else []) + (['firecrawl'] if os.getenv('FIRECRAWL_API_KEY') else [])
+        return ['httpx','httpx_mobile'] + (['curl_cffi'] if os.getenv('ENABLE_CURL')=='true' else []) + ['trafilatura','readability','jina'] + (['playwright'] if os.getenv('ENABLE_BROWSER')=='true' else []) + (['firecrawl'] if os.getenv('FIRECRAWL_API_KEY') else [])
     return (['searxng'] if os.getenv('SEARXNG_URL') else []) + ['duckduckgo'] + (['tavily'] if os.getenv('TAVILY_API_KEY') else [])
 
 async def execute(provider, query, limit):
@@ -81,6 +81,24 @@ async def execute(provider, query, limit):
             snippet = result.select_one('.result__snippet')
             sources.append(dict(url=url, title=a.get_text(' ',strip=True), snippet=snippet.get_text(' ',strip=True) if snippet else ''))
         return {'sources': sources}
+    if provider in ('httpx_mobile','trafilatura','readability'):
+        await public_url(query)
+        headers={'User-Agent':'Mozilla/5.0 (Linux; Android 14; Mobile) AppleWebKit/537.36 Chrome/145 Mobile Safari/537.36'} if provider=='httpx_mobile' else {'Accept':'text/html,application/xhtml+xml'}
+        r=await request(query,headers=headers)
+        if provider=='trafilatura':
+            from trafilatura import extract
+            content=extract(r.text,include_comments=False,include_links=True,output_format='txt') or ''
+            title=query
+        elif provider=='readability':
+            from readability import Document
+            document=Document(r.text);title=document.short_title() or query
+            content=BeautifulSoup(document.summary(html_partial=True),'html.parser').get_text(' ',strip=True)
+        else:
+            soup=BeautifulSoup(r.text,'html.parser');title=soup.title.get_text(strip=True) if soup.title else query
+            for node in soup(['script','style','nav','footer']):node.decompose()
+            content=soup.get_text(' ',strip=True)
+        content=validate_content(content)
+        return {'content':content,'status':r.status_code,'final_url':str(r.url),'sources':[dict(url=query,title=title,snippet=content[:700])]}
     await public_url(query)
     if provider == 'playwright':
         from playwright.async_api import async_playwright
