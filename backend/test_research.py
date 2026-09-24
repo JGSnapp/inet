@@ -8,6 +8,7 @@ import providers
 from api import app
 from research import Research
 from store import Store
+from reports import markdown_report, pdf_report
 
 def test_fallback_cache_and_inflight(tmp_path, monkeypatch):
     calls=[]
@@ -131,6 +132,40 @@ def test_cancel(tmp_path,monkeypatch):
         assert not service.inflight
         store.db.close()
     asyncio.run(scenario())
+
+def test_followups_are_serialized_and_rerun_is_fresh(tmp_path,monkeypatch):
+    monkeypatch.setenv('ENABLE_LLM','false')
+    entered=[]
+    async def execute(provider,query,limit):
+        entered.append(query)
+        await asyncio.sleep(.04)
+        return {'sources':[{'url':f'https://example.com/{len(entered)}','title':query,'snippet':'Useful evidence for the answer.'}]}
+    monkeypatch.setattr(providers,'available',lambda mode:['test'])
+    monkeypatch.setattr(providers,'execute',execute)
+    async def scenario():
+        store=Store(str(tmp_path/'state.db'));service=Research(store)
+        root=service.submit('initial question',fresh=True,reflection_enabled=False)
+        await service.tasks[root['id']]
+        first=service.submit_followup(root['id'],'first follow-up')
+        second=service.submit_followup(first['id'],'second follow-up')
+        assert store.get('runs',second['id'])['status']=='queued'
+        await asyncio.gather(service.tasks[first['id']],service.tasks[second['id']])
+        first_done=store.get('runs',first['id']);second_done=store.get('runs',second['id'])
+        assert first_done['status']==second_done['status']=='completed'
+        assert first_done['thread_id']==second_done['thread_id']==root['id']
+        assert second_done['parent_id']==first['id']
+        rerun=service.rerun(root['id'])
+        assert rerun['rerun_of']==root['id'] and rerun['id']!=root['id']
+        await service.tasks[rerun['id']]
+        store.db.close()
+    asyncio.run(scenario())
+
+def test_markdown_and_pdf_exports():
+    run={'id':'abc','query':'Тестовый отчёт','status':'completed','result':{'answer':'Краткий **ответ**.','research_stats':{'sites_read':1,'sites_unread':0},'sources':[{'title':'Источник','url':'https://example.com'}]},'reflection':{'status':'completed','level':2,'summary':{'recovered':1,'alternatives':0,'failed_experiments':0}}}
+    markdown=markdown_report(run)
+    assert '# Тестовый отчёт' in markdown and 'https://example.com' in markdown
+    pdf=pdf_report(run)
+    assert pdf.startswith(b'%PDF-') and len(pdf)>1000
 
 @pytest.mark.parametrize('url',['http://127.0.0.1','http://[::1]','http://169.254.169.254','file:///etc/passwd','http://user:pass@example.com'])
 def test_private_urls(url):

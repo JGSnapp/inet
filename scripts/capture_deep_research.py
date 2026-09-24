@@ -33,7 +33,7 @@ async def main():
         await page.evaluate('window.scrollTo(0,0)')
         await page.screenshot(path=str(OUT/'05-deep-research-route.png'),full_page=False,animations='disabled')
         await browser.close()
-    manifest={'screenshots':[x[0] for x in CASES]+['04-ai-datacenter-failures.png','05-deep-research-route.png'],'browser_errors':errors}
+    manifest={'screenshots':[x[0] for x in CASES]+['04-ai-datacenter-failures.png','05-deep-research-route.png','06-live-agent-activity.png','07-importance-aware-result.png'],'browser_errors':errors}
     (OUT/'screenshots.json').write_text(json.dumps(manifest,ensure_ascii=False,indent=2),encoding='utf-8')
     print(json.dumps(manifest,ensure_ascii=False))
     if errors:raise RuntimeError(errors)

@@ -2,7 +2,7 @@ import asyncio
 import json
 from contextlib import asynccontextmanager
 from pathlib import Path
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, field_validator
 from typing import Literal
@@ -22,7 +22,7 @@ async def lifespan(app):
         app.state.automation.research=app.state.research
         app.state.automation.start()
         for run in app.state.store.list('runs'):
-            if run['status']=='running':
+            if run['status'] in ('running','queued'):
                 run['status']='interrupted'; app.state.store.put('runs',run['id'],run)
         yield
         tasks = list(app.state.research.tasks.values())+list(app.state.research.reflection_tasks.values())
@@ -93,11 +93,16 @@ async def run(id:str):
 
 @app.post('/api/runs/{id}/cancel')
 async def cancel(id:str):
-    await run(id)
+    item=await run(id)
     task=app.state.research.tasks.get(id)
     if task:
         task.cancel()
         await asyncio.gather(task,return_exceptions=True)
+    # A queued task can be cancelled before its coroutine reaches Research.run(),
+    # so persist the terminal state here as well.
+    item=app.state.store.get('runs',id)
+    if item and item.get('status') in ('queued','running'):
+        item['status']='cancelled';app.state.store.put('runs',id,item)
     return await run(id)
 
 @app.get('/api/system')
@@ -132,6 +137,38 @@ async def cancel_reflection(id:str):
     if task:
         task.cancel();await asyncio.gather(task,return_exceptions=True)
     return await run(id)
+
+class FollowUpRequest(BaseModel):
+    question: str = Field(min_length=1,max_length=4000)
+    @field_validator('question')
+    @classmethod
+    def question_nonempty(cls,value):
+        if not value.strip():raise ValueError('Вопрос пуст')
+        return value.strip()
+
+@app.post('/api/runs/{id}/follow-up',status_code=202)
+async def follow_up(id:str,payload:FollowUpRequest):
+    await run(id)
+    try:return app.state.research.submit_followup(id,payload.question)
+    except ValueError as exc:raise HTTPException(409,str(exc))
+
+@app.post('/api/runs/{id}/rerun',status_code=202)
+async def rerun(id:str):
+    await run(id)
+    try:return app.state.research.rerun(id)
+    except ValueError as exc:raise HTTPException(409,str(exc))
+
+@app.get('/api/runs/{id}/export.md')
+async def export_markdown(id:str):
+    item=await run(id)
+    from reports import markdown_report
+    return Response(markdown_report(item),media_type='text/markdown; charset=utf-8',headers={'Content-Disposition':f'attachment; filename="inet-{id[:8]}.md"'})
+
+@app.get('/api/runs/{id}/export.pdf')
+async def export_pdf(id:str):
+    item=await run(id)
+    from reports import pdf_report
+    return Response(pdf_report(item),media_type='application/pdf',headers={'Content-Disposition':f'attachment; filename="inet-{id[:8]}.pdf"'})
 
 class JobRequest(BaseModel):
     kind: Literal['discover','generate','evaluate','proxies','quotas','metadata','repair_version','crawl','provision','services','discover_apis','pipeline_design','pipeline_evaluate','pipeline_repair','pipeline_monitor','api_monitor','integrate_api','workspace_repair']
