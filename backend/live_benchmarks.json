@@ -1,0 +1,22 @@
+[
+  {"query":"https://example.com/","expected":"Example Domain"},
+  {"query":"https://www.python.org/","expected":"Python"},
+  {"query":"https://www.rust-lang.org/","expected":"Rust"},
+  {"query":"https://go.dev/","expected":"Go"},
+  {"query":"https://www.sqlite.org/index.html","expected":"SQLite"},
+  {"query":"https://www.postgresql.org/","expected":"PostgreSQL"},
+  {"query":"https://www.djangoproject.com/","expected":"Django"},
+  {"query":"https://flask.palletsprojects.com/","expected":"Flask"},
+  {"query":"https://fastapi.tiangolo.com/","expected":"FastAPI"},
+  {"query":"https://numpy.org/","expected":"NumPy"},
+  {"query":"https://pandas.pydata.org/","expected":"pandas"},
+  {"query":"https://react.dev/","expected":"React"},
+  {"query":"https://www.typescriptlang.org/","expected":"TypeScript"},
+  {"query":"https://kubernetes.io/","expected":"Kubernetes"},
+  {"query":"https://docs.docker.com/","expected":"Docker"},
+  {"query":"https://www.w3.org/","expected":"W3C"},
+  {"query":"https://www.ietf.org/","expected":"IETF"},
+  {"query":"https://developer.mozilla.org/en-US/","expected":"MDN"},
+  {"query":"https://docs.searxng.org/","expected":"SearXNG"},
+  {"query":"https://www.debian.org/","expected":"Debian"}
+]

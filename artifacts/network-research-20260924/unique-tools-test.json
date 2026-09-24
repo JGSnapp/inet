@@ -1,0 +1,32 @@
+{
+  "tested_at": "2026-09-24",
+  "query": "https://example.com/inet-unique-tool-test-404",
+  "mode": "fetch",
+  "unique_tools": true,
+  "status": "completed",
+  "attempted_tools": [
+    "curl_cffi",
+    "httpx",
+    "jina"
+  ],
+  "failed_attempts": [
+    {
+      "tool": "curl_cffi",
+      "result": "HTTP 404",
+      "duration_ms": 984
+    },
+    {
+      "tool": "httpx",
+      "result": "HTTP 404",
+      "duration_ms": 278
+    }
+  ],
+  "successful_tool": "jina",
+  "sources": 1,
+  "assertions": {
+    "no_tool_called_more_than_once": true,
+    "fallback_continued_after_failures": true,
+    "failure_details_visible_in_ui": true,
+    "browser_errors_during_capture": 0
+  }
+}

@@ -1,0 +1,17 @@
+fastapi>=0.116,<1
+httpx>=0.28,<1
+beautifulsoup4>=4.13,<5
+defusedxml>=0.7,<1
+cryptography>=44,<51
+socksio>=1,<2
+uvicorn[standard]>=0.35,<1
+sqlalchemy>=2.0,<3
+psycopg2-binary>=2.9,<3
+langgraph>=1.0,<2
+langgraph-checkpoint-sqlite>=3,<4
+langchain-openai>=1.0,<2
+langchain-anthropic>=1.0,<2
+langchain-google-genai>=3.0,<5
+langchain-groq>=1.0,<2
+langchain-deepseek>=1.0,<2
+langchain-ollama>=1.0,<2

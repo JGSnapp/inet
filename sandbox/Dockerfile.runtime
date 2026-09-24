@@ -1,0 +1,9 @@
+# The upstream image already contains the browser and its OS libraries.  Keeping
+# the Python package on the exact same version avoids a large, flaky apt install
+# during every local build.
+FROM mcr.microsoft.com/playwright/python:v1.62.0-noble
+RUN pip install --no-cache-dir playwright==1.62.0 httpx==0.28.1 beautifulsoup4==4.15.0
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+USER pwuser
+WORKDIR /work
+CMD ["python","--version"]

@@ -1,0 +1,5 @@
+__pycache__
+runtime
+*.sqlite3*
+.env
+test_*.py

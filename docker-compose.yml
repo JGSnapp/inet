@@ -1,0 +1,92 @@
+﻿services:
+  backend:
+    build: ./backend
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      RUNTIME_DB: /app/runtime/state.sqlite3
+      SANDBOX_URL: http://sandbox:8090
+      SANDBOX_TOKEN: ${SANDBOX_TOKEN:?Set SANDBOX_TOKEN in .env}
+      ENABLE_BROWSER: "true"
+      ENABLE_CURL: "true"
+      SEARXNG_URL: ${SEARXNG_URL:-}
+    volumes:
+      - runtime_data:/app/runtime
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "127.0.0.1:${BACKEND_PORT:-8000}:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+  frontend:
+    build: ./frontend
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${FRONTEND_PORT:-8501}:80"
+  sandbox:
+    build: ./sandbox
+    environment:
+      SANDBOX_TOKEN: ${SANDBOX_TOKEN:?Set SANDBOX_TOKEN in .env}
+      SANDBOX_NETWORK: inet-sandbox
+      SANDBOX_IMAGE: inet-sandbox-runtime:local
+      SANDBOX_WORKSPACE_IMAGE: inet-sandbox-workspace:local
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      sandbox-runtime:
+        condition: service_completed_successfully
+      sandbox-workspace:
+        condition: service_completed_successfully
+      egress:
+        condition: service_started
+      fixtures:
+        condition: service_started
+    networks: [default, isolated]
+    ports:
+      - "127.0.0.1:8090:8090"
+  sandbox-runtime:
+    build:
+      context: ./sandbox
+      dockerfile: Dockerfile.runtime
+    image: inet-sandbox-runtime:local
+    command: ["python", "--version"]
+    network_mode: none
+  sandbox-workspace:
+    build:
+      context: ./sandbox
+      dockerfile: Dockerfile.workspace
+    image: inet-sandbox-workspace:local
+    command: ["python", "--version"]
+    network_mode: none
+  egress:
+    image: python:3.12-slim
+    command: ["python", "/app/egress.py"]
+    volumes:
+      - ./sandbox/egress.py:/app/egress.py:ro
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    user: "1000:1000"
+    networks: [default, isolated]
+  fixtures:
+    image: python:3.12-slim
+    command: ["python", "/app/fixtures.py"]
+    volumes:
+      - ./sandbox/fixtures.py:/app/fixtures.py:ro
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    user: "1000:1000"
+    networks: [isolated]
+volumes:
+  runtime_data:
+networks:
+  isolated:
+    name: inet-sandbox
+    internal: true

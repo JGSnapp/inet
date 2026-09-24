@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "search": [
+    {"query":"Python programming language official", "expected":"python"},
+    {"query":"Mozilla MDN web documentation", "expected":"mozilla"},
+    {"query":"PostgreSQL documentation official", "expected":"postgresql"},
+    {"query":"SQLite database documentation", "expected":"sqlite"},
+    {"query":"Rust programming language official", "expected":"rust"},
+    {"query":"Go programming language official", "expected":"go.dev"},
+    {"query":"Docker documentation official", "expected":"docker"},
+    {"query":"Kubernetes documentation", "expected":"kubernetes"},
+    {"query":"React documentation official", "expected":"react"},
+    {"query":"TypeScript documentation official", "expected":"typescript"},
+    {"query":"FastAPI documentation", "expected":"fastapi"},
+    {"query":"Django documentation official", "expected":"django"},
+    {"query":"Flask documentation official", "expected":"flask"},
+    {"query":"NumPy documentation", "expected":"numpy"},
+    {"query":"Pandas documentation", "expected":"pandas"},
+    {"query":"W3C web standards", "expected":"w3"},
+    {"query":"IETF RFC documents", "expected":"ietf"},
+    {"query":"Internet Archive Wayback Machine", "expected":"archive"},
+    {"query":"SearXNG documentation", "expected":"searxng"},
+    {"query":"LangGraph documentation", "expected":"lang"}
+  ]
+}

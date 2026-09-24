@@ -1,0 +1,13 @@
+{
+  "target": "wikipedia",
+  "url": "https://en.wikipedia.org/wiki/Web_scraping",
+  "initial_status": "failed",
+  "initial_error": "HTTPStatusError during preliminary inspection",
+  "repair": "Treat inspection failure as a diagnostic and continue to declarative HTML/browser fallbacks",
+  "retest_status": "completed",
+  "eligible": true,
+  "stage": "browser",
+  "sample_chars": 28589,
+  "final_parsing_passed": 8,
+  "final_parsing_targets": 8
+}

@@ -1,0 +1,15 @@
+.env
+.venv/
+.idea/
+.vscode/
+__pycache__/
+*.pyc
+.pytest_cache/
+db/postgres/
+frontend/node_modules/
+frontend/build/
+runtime/
+*.sqlite3*
+artifacts/*
+!artifacts/network-research-20260924/
+!artifacts/network-research-20260924/**
