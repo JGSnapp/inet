@@ -8,7 +8,7 @@ import re
 import time
 from pathlib import Path
 from uuid import uuid4
-from urllib.parse import urlsplit,urljoin,parse_qs
+from urllib.parse import urlsplit,urljoin,parse_qs,parse_qsl,urlencode,urlunsplit
 from langchain_core.messages import HumanMessage,SystemMessage
 from langgraph.graph import START,END,StateGraph
 from typing import TypedDict
@@ -687,7 +687,12 @@ class Automation:
             parameters={**c.get('static_params',{}),c['query_param']:query}
             if c.get('limit_param','limit'):parameters[c.get('limit_param','limit')]=limit
             args={'params' if c['method']=='GET' else 'json':parameters}
-            response=await providers.request(c['endpoint'],method=c['method'],headers=headers,**args)
+            endpoint=c['endpoint']
+            if c['method']=='GET':
+                parsed=urlsplit(endpoint);replaced={c['query_param'],c.get('limit_param','limit')}
+                retained=[(key,value) for key,value in parse_qsl(parsed.query,keep_blank_values=True) if key not in replaced]
+                endpoint=urlunsplit((parsed.scheme,parsed.netloc,parsed.path,urlencode(retained),parsed.fragment))
+            response=await providers.request(endpoint,method=c['method'],headers=headers,**args)
             data=response.json()
             for part in c['result_path'].split('.'):
                 if part:data=data[part]

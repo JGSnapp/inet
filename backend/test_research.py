@@ -72,6 +72,32 @@ def test_persistence_levels_and_post_answer_reflection(tmp_path,monkeypatch):
         store.db.close()
     asyncio.run(scenario())
 
+def test_agent_owns_deep_search_plan_and_never_exceeds_120_calls(tmp_path,monkeypatch):
+    monkeypatch.setenv('ENABLE_LLM','false')
+    calls=[]
+    monkeypatch.setattr(providers,'available',lambda mode:['searcher'] if mode=='search' else ['fetcher'])
+    async def execute(provider,query,limit):
+        calls.append((provider,query))
+        if provider=='searcher':
+            suffix=str(abs(hash(query))%100000)
+            return {'sources':[{'url':f'https://example.com/{suffix}','title':query,'snippet':'relevant result'}]}
+        return {'content':'Useful independently verified source content. '*20,'sources':[{'url':query,'title':'Source','snippet':'evidence'}]}
+    monkeypatch.setattr(providers,'execute',execute)
+    async def scenario():
+        store=Store(str(tmp_path/'state.db'));service=Research(store)
+        run=service.submit('compare open and commercial 3D generation systems',deep=True,fresh=True,reflection_enabled=False,persistence_level=4)
+        await service.tasks[run['id']]
+        done=store.get('runs',run['id'])
+        assert done['status']=='completed'
+        assert done['result']['provider']=='agentic'
+        assert done['call_budget']['used']<=120
+        assert done['result']['research_stats']['calls_used']==done['call_budget']['used']
+        stages=[event['stage'] for event in done['events']]
+        assert stages.index('agent_plan')<next(i for i,stage in enumerate(stages) if stage.startswith('agent_search:'))
+        assert any(stage.startswith('agent_fetch:') for stage in stages)
+        store.db.close()
+    asyncio.run(scenario())
+
 def test_negative_cache_recovery_and_quota(tmp_path,monkeypatch):
     monkeypatch.setattr(providers,'available',lambda mode:['tavily'])
     monkeypatch.setenv('TAVILY_MONTHLY_LIMIT','0')
