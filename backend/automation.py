@@ -60,13 +60,16 @@ class Automation:
         for task in tasks:task.cancel()
         await asyncio.gather(*tasks,return_exceptions=True)
 
-    def enqueue(self,kind,payload=None):
+    def enqueue(self,kind,payload=None,priority=0):
         if kind not in ('discover','generate','evaluate','proxies','quotas','metadata','repair_version','crawl','provision','services','discover_apis','pipeline_design','pipeline_evaluate','pipeline_repair','pipeline_monitor','api_monitor','integrate_api','workspace_repair'): raise ValueError('Unknown job type')
         payload=payload or {}
         fingerprint=hashlib.sha256(json.dumps([kind,payload],sort_keys=True).encode()).hexdigest()
         for job in self.store.all('jobs'):
-            if job['fingerprint']==fingerprint and job['status'] in ('queued','running'):return job
-        job={'id':str(uuid4()),'kind':kind,'payload':payload,'fingerprint':fingerprint,'status':'queued','created_at':time.time(),'events':[]}
+            if job['fingerprint']==fingerprint and job['status'] in ('queued','running'):
+                if priority>job.get('priority',0):
+                    job['priority']=priority;self.store.save('jobs',job['id'],job);self.wake.set()
+                return job
+        job={'id':str(uuid4()),'kind':kind,'payload':payload,'fingerprint':fingerprint,'status':'queued','priority':priority,'created_at':time.time(),'events':[]}
         self.store.save('jobs',job['id'],job);self.wake.set();return job
 
     def event(self,id,stage,detail,status='running'):
@@ -74,7 +77,7 @@ class Automation:
 
     async def worker(self):
         while True:
-            queued=sorted([x for x in self.store.all('jobs') if x['status']=='queued'],key=lambda x:x['created_at'])
+            queued=sorted([x for x in self.store.all('jobs') if x['status']=='queued'],key=lambda x:(-x.get('priority',0),x['created_at']))
             if queued:
                 await self.graph.ainvoke({'id':queued[0]['id']})
             else:
@@ -160,7 +163,7 @@ class Automation:
                 record['verification_status']='discovered';record['provenance']=[{'source':'search fallback','query':query}];self.store.save('catalog',key,record)
         self.event(id,'discovery',f'Получено кандидатов: {len(added)}','success')
         if os.getenv('ENABLE_LLM')=='true' and payload.get('integrate',True):
-            for key in added[:2]:self.enqueue('generate',{'candidate':key})
+            for key in added[:2]:self.enqueue('generate',{'candidate':key},priority=int(payload.get('job_priority',0)))
         return {'candidates':added}
 
     async def metadata(self,payload,id):
@@ -731,9 +734,13 @@ class Automation:
         async def retry(provider):
             event(run_id,'recovery','running','Проверка стратегии: '+provider)
             return (await attempt({**state,'plan':[provider],'index':0})).get('result')
-        if state['mode']=='search' and 'managed:searxng' not in state['plan']:
+        if state['mode']=='search':
+            already_tried='managed:searxng' in state['plan']
             event(run_id,'infrastructure','running','Подготовка изолированного поискового инструмента SearXNG')
             try:
+                if already_tried:
+                    event(run_id,'infrastructure','running','Перезапуск ранее отказавшего SearXNG перед повторной проверкой')
+                    await self.sandbox.service_action('searxng','restart')
                 await self.provision({'profile':'searxng'})
                 result=await retry('managed:searxng')
                 if result:return result,'SearXNG автоматически развёрнут после отказа внешнего поискового адаптера.'
@@ -766,17 +773,16 @@ class Automation:
                     if result:return result,decision.explanation
             except Exception:event(run_id,'proxy_discovery','error','Рабочий прокси не найден')
         jobs=[]
-        if decision.candidate_id and self.store.load('catalog',decision.candidate_id):jobs.append(self.enqueue('generate',{'candidate':decision.candidate_id}))
-        if decision.discover_query or not jobs:jobs.append(self.enqueue('discover',{'query':decision.discover_query or ('web scraping python' if state['mode']=='fetch' else 'search engine api python'),'integrate':True}))
+        if decision.candidate_id and self.store.load('catalog',decision.candidate_id):jobs.append(self.enqueue('generate',{'candidate':decision.candidate_id},priority=100))
+        if decision.discover_query or not jobs:jobs.append(self.enqueue('discover',{'query':decision.discover_query or ('web scraping python' if state['mode']=='fetch' else 'search engine api python'),'integrate':True,'job_priority':100},priority=100))
         event(run_id,'tool_development','running','Обнаружение и проверка новых адаптеров в очереди')
         self.store.put('cases',run_id,{'id':run_id,'query':state['query'],'mode':state['mode'],'allow_archive':state.get('allow_archive',False),'status':'developing','advice':decision.explanation,'jobs':[j['id'] for j in jobs],'created_at':time.time()})
-        if any(j['kind']=='crawl' and j['status']=='running' for j in self.store.all('jobs')):
-            return None,decision.explanation+' Разработка поставлена в очередь после текущего сбора данных.'
+        recovery_wait=float(os.getenv('RECOVERY_WAIT_SECONDS','240' if state.get('deep') else '180'))
         for job in jobs:
-            try:await self.wait_job(job['id'],120)
+            try:await self.wait_job(job['id'],recovery_wait)
             except TimeoutError:break
         # Test any version that became available while discovery/evaluation jobs were running.
-        deadline=time.monotonic()+float(os.getenv('RECOVERY_WAIT_SECONDS','120'))
+        deadline=time.monotonic()+recovery_wait
         while time.monotonic()<deadline:
             for provider in self.available(state['mode'],state.get('allow_archive',False),state['query']):
                 if provider not in state['plan']:

@@ -108,6 +108,15 @@ def test_discovery_and_queue_dedup(auto,monkeypatch):
         await auto.close()
     asyncio.run(scenario())
 
+def test_emergency_job_promotes_existing_queue_entry(auto):
+    routine=auto.enqueue('discover',{'query':'search engine api python'})
+    urgent=auto.enqueue('discover',{'query':'search engine api python'},priority=100)
+    auto.enqueue('metadata',priority=10)
+    assert urgent['id']==routine['id']
+    assert auto.store.load('jobs',routine['id'])['priority']==100
+    ordered=sorted(auto.store.all('jobs'),key=lambda job:(-job.get('priority',0),job['created_at']))
+    assert ordered[0]['id']==routine['id']
+
 def test_evaluation_to_runtime_and_regression(auto,monkeypatch):
     version=auto.registry.create(spec())
     live=json.loads(Path(__file__).with_name('live_benchmarks.json').read_text())
@@ -226,6 +235,18 @@ def test_recovery_provisions_managed_search_before_llm(auto,monkeypatch):
         result,advice=await auto.recover({'id':run_id,'query':'python docs','mode':'search','plan':['duckduckgo'],'allow_archive':False},attempt,lambda *args,**kwargs:None)
         assert result['sources'] and 'автоматически' in advice
         assert calls==[('provision',{'profile':'searxng'}),('attempt','managed:searxng')]
+    asyncio.run(scenario())
+
+def test_recovery_restarts_managed_search_after_failure(auto,monkeypatch):
+    run_id='managed-restart';auto.store.put('runs',run_id,{'id':run_id,'query':'energy data','events':[{'stage':'managed:searxng','status':'error','detail':'Empty sources'}]})
+    calls=[]
+    async def service_action(name,action):calls.append((action,name));return {'status':'running'}
+    async def provision(payload,id=None):calls.append(('provision',payload['profile']));return {'status':'running'}
+    async def attempt(state):calls.append(('attempt',state['plan'][0]));return {'result':{'sources':[{'url':'https://example.org/report','title':'Report','snippet':'Evidence'}]}}
+    monkeypatch.setattr(auto.sandbox,'service_action',service_action);monkeypatch.setattr(auto,'provision',provision)
+    async def scenario():
+        result,_=await auto.recover({'id':run_id,'query':'energy data','mode':'search','plan':['managed:searxng'],'allow_archive':False},attempt,lambda *args,**kwargs:None)
+        assert result['sources'] and calls==[('restart','searxng'),('provision','searxng'),('attempt','managed:searxng')]
     asyncio.run(scenario())
 
 def test_generation_timeout_is_retried(auto,monkeypatch):

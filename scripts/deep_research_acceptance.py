@@ -56,9 +56,16 @@ def main():
         }
         path.write_text(json.dumps(payload,ensure_ascii=False,indent=2),encoding="utf-8")
         print(json.dumps(payload["summary"],ensure_ascii=False));return 0
+    selected=CASES
+    output_path=OUT / "results.json"
+    if "--case" in sys.argv:
+        case_id=sys.argv[sys.argv.index("--case")+1]
+        selected=[case for case in CASES if case["id"]==case_id]
+        if not selected:raise SystemExit("Unknown case: "+case_id)
+        output_path=OUT / ("retry-"+case_id+".json")
     started = time.time()
     results = []
-    for case in CASES:
+    for case in selected:
         run = request("POST", "/runs", {"query": case["query"], "mode": "search", "limit": 10, "fresh": True, "deep": True, "instruction": case["instruction"]})
         print(f"{case['id']}: {run['id']}", flush=True)
         deadline = time.monotonic() + 1200
@@ -87,9 +94,9 @@ def main():
         },
         "runs": results,
     }
-    (OUT / "results.json").write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    output_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
     print(json.dumps(payload["summary"], ensure_ascii=False), flush=True)
-    return 0 if payload["summary"]["completed"] == len(CASES) and all(((run.get("result") or {}).get("research_stats") or {}).get("sites_read", 0) >= 20 for run in results) else 2
+    return 0 if payload["summary"]["completed"] == len(selected) and all(((run.get("result") or {}).get("research_stats") or {}).get("sites_read", 0) >= 20 for run in results) else 2
 
 
 if __name__ == "__main__":
