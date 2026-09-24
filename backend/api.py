@@ -41,6 +41,7 @@ class RunRequest(BaseModel):
     fresh: bool = False
     allow_archive: bool = False
     unique_tools: bool = False
+    deep: bool = False
     instruction: str = Field(default='',max_length=2000)
     @field_validator('query')
     @classmethod
@@ -91,6 +92,11 @@ async def resume(id:str):
     await run(id)
     try: return await app.state.research.resume(id)
     except ValueError as exc: raise HTTPException(409,str(exc))
+
+@app.post('/api/runs/{id}/synthesize')
+async def synthesize(id:str):
+    try:return await app.state.research.resynthesize(id)
+    except ValueError as exc:raise HTTPException(409,str(exc))
 
 class JobRequest(BaseModel):
     kind: Literal['discover','generate','evaluate','proxies','quotas','metadata','repair_version','crawl','provision','services','discover_apis','pipeline_design','pipeline_evaluate','pipeline_repair','pipeline_monitor','api_monitor','integrate_api','workspace_repair']
