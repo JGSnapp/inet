@@ -75,7 +75,12 @@ async def save_research_settings(payload:ResearchSettings):
     value=payload.model_dump();app.state.store.save('settings','research',value);return value
 
 @app.get('/api/runs')
-async def runs(): return app.state.store.list('runs')
+async def runs():
+    items=app.state.store.list('runs')
+    for item in items:
+        app.state.research.ensure_budgets(item)
+        app.state.store.put('runs',item['id'],item)
+    return items
 
 @app.post('/api/runs',status_code=202)
 async def submit(payload:RunRequest):
@@ -89,6 +94,8 @@ async def submit(payload:RunRequest):
 async def run(id:str):
     item=app.state.store.get('runs',id)
     if not item: raise HTTPException(404,'Запрос не найден')
+    app.state.research.ensure_budgets(item)
+    app.state.store.put('runs',id,item)
     return item
 
 @app.post('/api/runs/{id}/cancel')

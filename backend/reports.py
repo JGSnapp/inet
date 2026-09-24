@@ -7,7 +7,7 @@ from xml.sax.saxutils import escape
 def markdown_report(run):
     result=run.get('result') or {};stats=result.get('research_stats') or {};reflection=run.get('reflection') or {}
     lines=[f"# {run.get('query','INET research')}",'',result.get('answer') or 'Ответ не сформирован.','', '## Метрики','']
-    for label,key in [('Найдено источников','discovered_sources'),('Прочитано сайтов','sites_read'),('Непрочитано сайтов','sites_unread'),('Домены','domains_read'),('Вызовы','calls_used')]:
+    for label,key in [('Найдено источников','discovered_sources'),('Прочитано сайтов','sites_read'),('Непрочитано сайтов','sites_unread'),('Домены','domains_read'),('Сообщения агента','agent_messages_used'),('Инструментальные вызовы','tool_calls_used')]:
         if key in stats:lines.append(f"- {label}: {stats[key]}")
     lines += ['', '## Источники', '']
     for index,source in enumerate(result.get('sources',[]),1):lines.append(f"{index}. [{source.get('title') or source.get('url')}]({source.get('url')})")

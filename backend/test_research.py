@@ -73,7 +73,7 @@ def test_persistence_levels_and_post_answer_reflection(tmp_path,monkeypatch):
         store.db.close()
     asyncio.run(scenario())
 
-def test_agent_owns_deep_search_plan_and_never_exceeds_120_calls(tmp_path,monkeypatch):
+def test_agent_owns_deep_search_plan_and_never_exceeds_120_messages(tmp_path,monkeypatch):
     monkeypatch.setenv('ENABLE_LLM','false')
     calls=[]
     monkeypatch.setattr(providers,'available',lambda mode:['searcher'] if mode=='search' else ['fetcher'])
@@ -92,7 +92,8 @@ def test_agent_owns_deep_search_plan_and_never_exceeds_120_calls(tmp_path,monkey
         assert done['status']=='completed'
         assert done['result']['provider']=='agentic'
         assert done['call_budget']['used']<=120
-        assert done['result']['research_stats']['calls_used']==done['call_budget']['used']
+        assert done['result']['research_stats']['agent_messages_used']==done['call_budget']['used']
+        assert done['result']['research_stats']['tool_calls_used']==done['tool_budget']['used']
         stages=[event['stage'] for event in done['events']]
         assert stages.index('agent_plan')<next(i for i,stage in enumerate(stages) if stage.startswith('agent_search:'))
         assert any(stage.startswith('agent_fetch:') for stage in stages)
@@ -170,14 +171,28 @@ def test_markdown_and_pdf_exports():
 def test_synthesis_budget_is_reserved_and_fallback_is_not_raw_pages(tmp_path,monkeypatch):
     monkeypatch.setenv('ENABLE_LLM','true')
     store=Store(str(tmp_path/'state.db'));service=Research(store)
-    run={'id':'budget','status':'running','events':[],'call_budget':{'limit':120,'used':118,'by_kind':{}}}
+    run={'id':'budget','status':'running','events':[],'call_budget':{'scope':'agent_messages','limit':120,'used':118,'by_kind':{}},'tool_budget':{'scope':'tool_calls','limit':2,'used':2,'by_kind':{}}}
     store.put('runs','budget',run)
-    assert service.reserve_call('budget','fetch','https://example.com') is False
-    assert service.reserve_call('budget','synthesis','answer') is True
+    assert service.reserve_tool_call('budget','fetch','https://example.com') is False
+    assert service.reserve_agent_message('budget','synthesis','answer') is True
     result={'sources':[{'url':'https://example.com','title':'Example','snippet':'RAW PAGE BODY '*1000}], 'research_stats':{'sites_read':1}}
     answer=service.synthesis_fallback('question',result,'TimeoutError')
     assert 'Синтез временно недоступен' in answer
     assert 'RAW PAGE BODY' not in answer
+    store.db.close()
+
+def test_legacy_combined_budget_is_split_by_kind(tmp_path,monkeypatch):
+    monkeypatch.setenv('AGENT_MESSAGE_LIMIT','120')
+    monkeypatch.setenv('TOOL_CALL_LIMIT','480')
+    store=Store(str(tmp_path/'state.db'));service=Research(store)
+    run={'id':'legacy','status':'running','events':[],'call_budget':{'limit':120,'used':9,'by_kind':{'planner':2,'synthesis':1,'search':3,'fetch':3}}}
+    store.put('runs','legacy',run)
+    assert service.reserve_agent_message('legacy','planner','next') is True
+    migrated=store.get('runs','legacy')
+    assert migrated['call_budget']['scope']=='agent_messages'
+    assert migrated['call_budget']['used']==4
+    assert migrated['tool_budget']['used']==6
+    assert migrated['legacy_call_budget']['used']==9
     store.db.close()
 
 @pytest.mark.parametrize('url',['http://127.0.0.1','http://[::1]','http://169.254.169.254','file:///etc/passwd','http://user:pass@example.com'])
@@ -198,6 +213,10 @@ def test_api_and_persistence(tmp_path,monkeypatch):
         assert client.post('/api/runs',json={'query':'  '}).status_code==422
         assert client.post('/api/runs',json={'query':'x','limit':100}).status_code==422
         assert client.get('/api/runs/unknown').status_code==404
+        app.state.store.put('runs','legacy-budget',{'id':'legacy-budget','status':'completed','events':[],'call_budget':{'limit':120,'used':7,'by_kind':{'planner':1,'fetch':4}}})
+        migrated=client.get('/api/runs/legacy-budget').json()
+        assert migrated['call_budget']['used']==1
+        assert migrated['tool_budget']['used']==6
         assert len(client.get('/api/resources').json()['resources'])>100
         app.state.store.put('runs','interrupted',{'id':'interrupted','status':'running'})
     with TestClient(app) as client:
