@@ -167,6 +167,19 @@ def test_markdown_and_pdf_exports():
     pdf=pdf_report(run)
     assert pdf.startswith(b'%PDF-') and len(pdf)>1000
 
+def test_synthesis_budget_is_reserved_and_fallback_is_not_raw_pages(tmp_path,monkeypatch):
+    monkeypatch.setenv('ENABLE_LLM','true')
+    store=Store(str(tmp_path/'state.db'));service=Research(store)
+    run={'id':'budget','status':'running','events':[],'call_budget':{'limit':120,'used':118,'by_kind':{}}}
+    store.put('runs','budget',run)
+    assert service.reserve_call('budget','fetch','https://example.com') is False
+    assert service.reserve_call('budget','synthesis','answer') is True
+    result={'sources':[{'url':'https://example.com','title':'Example','snippet':'RAW PAGE BODY '*1000}], 'research_stats':{'sites_read':1}}
+    answer=service.synthesis_fallback('question',result,'TimeoutError')
+    assert 'Синтез временно недоступен' in answer
+    assert 'RAW PAGE BODY' not in answer
+    store.db.close()
+
 @pytest.mark.parametrize('url',['http://127.0.0.1','http://[::1]','http://169.254.169.254','file:///etc/passwd','http://user:pass@example.com'])
 def test_private_urls(url):
     with pytest.raises(ValueError): asyncio.run(providers.public_url(url))
