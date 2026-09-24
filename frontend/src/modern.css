@@ -419,3 +419,193 @@ button:focus-visible, a:focus-visible, select:focus-visible, textarea:focus-visi
 @media (prefers-reduced-motion: reduce) {
   * { scroll-behavior: auto !important; transition: none !important; }
 }
+
+/* Compact shell */
+.rail-toggle {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.rail-toggle:hover { color: var(--ink); background: var(--surface-2); }
+.topbar { gap: 12px; }
+.topbar>span { flex: 1; }
+.rail nav button b, .dev-nav summary b { font: inherit; }
+.rail-collapsed .rail { width: 72px; padding-inline: 10px; }
+.rail-collapsed .workspace { width: calc(100% - 72px); margin-left: 72px; }
+.rail-collapsed .wordmark { justify-content: center; padding: 0; font-size: 0; }
+.rail-collapsed .wordmark>span:last-child { display: none; }
+.rail-collapsed .new-research { justify-content: center; width: 44px; height: 44px; margin: 28px auto 18px; padding: 0; font-size: 20px; }
+.rail-collapsed .new-research span,
+.rail-collapsed .rail nav button b,
+.rail-collapsed .dev-nav summary b,
+.rail-collapsed .history-label,
+.rail-collapsed .history,
+.rail-collapsed .rail-bottom span:not(.live-dot):not(.offline-dot),
+.rail-collapsed .rail-bottom small { display: none; }
+.rail-collapsed .rail nav button,
+.rail-collapsed .dev-nav summary { justify-content: center; padding: 10px; }
+.rail-collapsed .rail nav button>span,
+.rail-collapsed .dev-nav summary>span { width: auto; font-size: 19px; }
+.rail-collapsed .dev-nav button { padding-left: 10px !important; }
+.rail-collapsed .rail-bottom { justify-content: center; border: 0; }
+.rail-collapsed .dev-nav .live-dot { position: absolute; margin: -16px 0 0 19px; }
+
+/* Composer settings stay attached to the control that uses them. */
+.composer-bottom { position: relative; }
+.composer-settings { position: relative; margin-left: auto; }
+.composer-bottom>.composer-settings+button { margin-left: 0; }
+.composer-settings summary {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  list-style: none;
+  cursor: pointer;
+}
+.composer-settings summary::-webkit-details-marker { display: none; }
+.composer-settings[open] summary, .composer-settings summary:hover { color: var(--ink); background: var(--surface-2); }
+.composer-settings-popover {
+  position: absolute;
+  right: 0;
+  bottom: 44px;
+  z-index: 25;
+  display: grid;
+  width: min(360px, calc(100vw - 36px));
+  gap: 12px;
+  padding: 16px;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: 14px;
+  box-shadow: 0 18px 55px rgb(0 0 0 / 35%);
+}
+.composer-settings-popover header { display: flex; align-items: baseline; justify-content: space-between; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
+.composer-settings-popover header strong { font-size: 13px; }
+.composer-settings-popover header small { color: var(--subtle); font-size: 9px; }
+.composer-settings-popover label { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 12px; color: var(--muted); font-size: 11px; }
+.composer-settings-popover label span b { color: var(--ink); }
+.composer-settings-popover input[type='range'] { width: 120px; accent-color: var(--accent); }
+.composer-settings-popover input[type='checkbox'] { width: 17px; height: 17px; accent-color: var(--accent); }
+.composer-settings-popover .setting-disabled { opacity: .45; }
+.composer-settings-popover .settings-instruction { display: grid; grid-template-columns: 1fr; }
+.composer-settings-popover textarea { min-height: 72px; padding: 9px 10px; color: var(--ink); background: var(--paper); border: 1px solid var(--line); border-radius: 8px; resize: vertical; }
+
+/* A run remains a chat turn. Telemetry is a compact, optional layer. */
+.current-question { margin-bottom: 4px; font-size: 14px; line-height: 1.5; }
+.result-hero { justify-content: flex-end; margin-bottom: 22px; }
+.result-hero>.current-question { margin-left: auto; }
+.inline-progress {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 14px;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  text-align: left;
+}
+.inline-progress:hover { border-color: var(--line-strong); background: var(--surface-2); }
+.progress-icon { display: grid; place-items: center; }
+.progress-icon .spinner { width: 18px; height: 18px; }
+.progress-copy { display: grid; min-width: 0; gap: 3px; }
+.progress-copy small { color: var(--accent); font-size: 8px; letter-spacing: .12em; }
+.progress-copy strong { font-size: 12px; font-weight: 580; }
+.progress-copy>span { overflow: hidden; color: var(--muted); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+.progress-track { position: relative; display: block; height: 2px; margin-top: 7px; overflow: hidden; background: var(--line); border-radius: 4px; }
+.progress-track>i { position: absolute; width: 35%; height: 100%; background: var(--accent); border-radius: inherit; animation: progress-slide 1.8s ease-in-out infinite; }
+.progress-open { color: var(--muted); font-size: 10px; white-space: nowrap; }
+.completed-progress { width: 100%; padding: 11px 13px; color: var(--muted); background: transparent; border: 1px solid var(--line); border-radius: 9px; text-align: left; }
+.completed-progress span { float: right; }
+.completed-progress:hover { color: var(--ink); background: var(--surface); }
+@keyframes progress-slide { 0% { left: -35%; } 55% { left: 55%; } 100% { left: 100%; } }
+
+.follow-up { grid-template-columns: minmax(0, 1fr) auto; align-items: end; }
+.follow-up-actions { display: flex; align-items: center; gap: 7px; }
+.follow-up-actions>button {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border-radius: 50%;
+  font-size: 17px;
+}
+.follow-up .composer-settings-popover { bottom: 46px; }
+
+/* Activity drawer */
+.progress-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  justify-content: flex-end;
+  background: rgb(0 0 0 / 48%);
+  backdrop-filter: blur(2px);
+}
+.progress-drawer {
+  width: min(680px, 94vw);
+  height: 100%;
+  padding: 24px;
+  overflow: auto;
+  color: var(--ink);
+  background: var(--paper);
+  border-left: 1px solid var(--line);
+  box-shadow: -20px 0 60px rgb(0 0 0 / 30%);
+}
+.progress-drawer>header { display: flex; align-items: center; justify-content: space-between; padding-bottom: 18px; border-bottom: 1px solid var(--line); }
+.progress-drawer>header small { color: var(--accent); font-size: 8px; letter-spacing: .13em; }
+.progress-drawer>header h2 { margin: 5px 0 0; font-size: 20px; }
+.progress-drawer>header button { width: 34px; height: 34px; color: var(--muted); background: transparent; border: 1px solid var(--line); border-radius: 50%; font-size: 20px; }
+.drawer-progress { padding: 20px 0 16px; }
+.drawer-progress>div { display: flex; align-items: center; gap: 12px; }
+.drawer-progress>div>span { flex: 0 0 auto; }
+.drawer-progress>div>div { display: grid; gap: 4px; }
+.drawer-progress strong { font-size: 13px; }
+.drawer-progress small { color: var(--muted); font-size: 10px; }
+.drawer-progress>i { display: block; height: 3px; margin-top: 16px; overflow: hidden; background: var(--line); border-radius: 4px; }
+.drawer-progress>i>i { display: block; width: 100%; height: 100%; background: var(--accent); }
+.drawer-progress>i.is-active>i { width: 32%; animation: progress-slide 1.8s ease-in-out infinite; }
+.drawer-metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 22px; }
+.drawer-metrics span { display: grid; gap: 3px; padding: 10px; color: var(--muted); background: var(--surface); border: 1px solid var(--line); border-radius: 9px; font-size: 9px; }
+.drawer-metrics b { color: var(--ink); font-size: 15px; }
+.event-list-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.event-list-heading strong { font-size: 12px; }
+.event-list-heading button { padding: 7px 10px; color: var(--danger); background: transparent; border: 1px solid var(--line); border-radius: 7px; font-size: 9px; }
+.event-detail { background: var(--surface); border: 1px solid var(--line); border-radius: 9px; margin-bottom: 7px; }
+.event-detail summary { display: grid; grid-template-columns: 10px minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 11px 12px; list-style: none; cursor: pointer; }
+.event-detail summary::-webkit-details-marker { display: none; }
+.event-detail summary>div { display: grid; gap: 3px; min-width: 0; }
+.event-detail summary strong { overflow: hidden; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+.event-detail summary small { overflow: hidden; color: var(--muted); font-size: 8px; text-overflow: ellipsis; white-space: nowrap; }
+.event-detail summary>span:last-child { color: var(--subtle); font-size: 8px; white-space: nowrap; }
+.event-detail-body { padding: 0 12px 12px 32px; color: var(--muted); border-top: 1px solid var(--line); font-size: 10px; line-height: 1.55; }
+.event-detail-body p { color: var(--ink); }
+.event-detail-body dl { display: grid; grid-template-columns: 70px 1fr; gap: 8px; margin: 6px 0; }
+.event-detail-body dt { color: var(--subtle); }
+.event-detail-body dd { margin: 0; overflow-wrap: anywhere; }
+
+@media (max-width: 760px) {
+  .rail-toggle { display: none; }
+  .rail-collapsed .rail, .rail-expanded .rail { width: 100%; }
+  .rail-collapsed .workspace, .rail-expanded .workspace { width: 100%; margin-left: 0; }
+  .progress-open { display: none; }
+  .inline-progress { grid-template-columns: 28px minmax(0, 1fr); }
+  .drawer-metrics { grid-template-columns: repeat(2, 1fr); }
+  .progress-drawer { width: 100%; padding: 18px; }
+  .composer-settings-popover { position: fixed; right: 12px; bottom: 76px; left: 12px; width: auto; }
+}
