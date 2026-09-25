@@ -125,7 +125,7 @@ button:focus-visible, a:focus-visible, select:focus-visible, textarea:focus-visi
   top: 0;
   z-index: 10;
 }
-.minimal-topbar { justify-content: flex-start; gap: 0; }
+.minimal-topbar { justify-content: flex-start; gap: 0; border-bottom: 0; }
 .brand-menu {
   display: grid;
   width: 58px;
@@ -624,13 +624,14 @@ button:focus-visible, a:focus-visible, select:focus-visible, textarea:focus-visi
   .composer-settings-popover { position: fixed; right: 12px; bottom: 76px; left: 12px; width: auto; }
 }
 
-/* Navigation is a temporary drawer: when closed it consumes no screen space. */
+/* Navigation pushes the desktop workspace instead of covering it. */
 .research-app .workspace,
-.rail-collapsed .workspace,
-.rail-expanded .workspace {
+.rail-collapsed .workspace {
   width: 100%;
   margin-left: 0;
+  transition: width .22s ease, margin-left .22s ease;
 }
+.rail-expanded .workspace { width: calc(100% - 260px); margin-left: 260px; }
 .rail,
 .rail-collapsed .rail,
 .rail-expanded .rail {
@@ -645,10 +646,10 @@ button:focus-visible, a:focus-visible, select:focus-visible, textarea:focus-visi
   border: 0;
   border-right: 1px solid var(--line);
   box-shadow: 18px 0 50px rgb(0 0 0 / 24%);
-  transform: none;
+  transition: transform .22s ease;
 }
-.rail-expanded .rail { display: flex; }
-.rail-collapsed .rail { display: none; pointer-events: none; }
+.rail-expanded .rail { display: flex; transform: translateX(0); }
+.rail-collapsed .rail { display: flex; transform: translateX(-100%); pointer-events: none; }
 .rail-head { display: flex; min-height: 42px; align-items: center; justify-content: space-between; gap: 10px; }
 .wordmark,
 .rail-collapsed .wordmark {
@@ -680,6 +681,7 @@ button:focus-visible, a:focus-visible, select:focus-visible, textarea:focus-visi
 }
 .rail-close:hover { color: var(--ink); background: var(--surface-2); }
 .rail-backdrop {
+  display: none;
   position: fixed;
   inset: 0;
   z-index: 40;
@@ -727,6 +729,8 @@ button:focus-visible, a:focus-visible, select:focus-visible, textarea:focus-visi
     height: 100vh;
     padding: 18px 14px 14px;
   }
+  .rail-expanded .workspace { width: 100%; margin-left: 0; }
+  .rail-backdrop { display: block; }
   .wordmark, .history-label, .history, .rail-bottom, .dev-nav { display: flex; }
   .history { display: block; }
   .dev-nav { display: block; }
