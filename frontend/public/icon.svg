@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1060 520" role="img" aria-labelledby="title desc">
+  <title id="title">INET</title>
+  <desc id="desc">Rounded white INET wordmark with a black outline.</desc>
+  <defs>
+    <linearGradient id="face" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff"/>
+      <stop offset=".72" stop-color="#f9f9f9"/>
+      <stop offset="1" stop-color="#e9e9e9"/>
+    </linearGradient>
+    <filter id="lift" x="-8%" y="-8%" width="116%" height="122%">
+      <feDropShadow dx="0" dy="5" stdDeviation="4" flood-color="#8a8a8a" flood-opacity=".55"/>
+    </filter>
+  </defs>
+
+  <g fill="url(#face)" stroke="#050505" stroke-width="15" stroke-linejoin="round" filter="url(#lift)">
+    <!-- i -->
+    <circle cx="82" cy="91" r="57"/>
+    <rect x="25" y="160" width="114" height="322" rx="57"/>
+
+    <!-- n -->
+    <rect x="168" y="211" width="114" height="271" rx="57"/>
+    <rect x="368" y="211" width="114" height="271" rx="57"/>
+    <rect x="168" y="160" width="314" height="124" rx="62"/>
+
+    <!-- e: layered strokes form one continuous rounded tube -->
+    <path d="M744 220H612c-59 0-92 39-92 101s33 101 92 101h132" fill="none" stroke="#050505" stroke-width="126" stroke-linecap="round"/>
+    <path d="M744 220H612c-59 0-92 39-92 101s33 101 92 101h132" fill="none" stroke="url(#face)" stroke-width="94" stroke-linecap="round"/>
+    <path d="M620 321h115" fill="none" stroke="#050505" stroke-width="126" stroke-linecap="round"/>
+    <path d="M620 321h115" fill="none" stroke="url(#face)" stroke-width="94" stroke-linecap="round"/>
+
+    <!-- t -->
+    <rect x="828" y="28" width="114" height="454" rx="57"/>
+    <rect x="820" y="160" width="224" height="124" rx="62"/>
+  </g>
+</svg>
