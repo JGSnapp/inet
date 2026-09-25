@@ -26,7 +26,7 @@
     <path d="M744 220H612c-59 0-92 39-92 101s33 101 92 101h132" fill="none" stroke="#050505" stroke-width="126" stroke-linecap="round"/>
     <path d="M744 220H612c-59 0-92 39-92 101s33 101 92 101h132" fill="none" stroke="url(#face)" stroke-width="94" stroke-linecap="round"/>
     <path d="M620 321h115" fill="none" stroke="#050505" stroke-width="126" stroke-linecap="round"/>
-    <path d="M620 321h115" fill="none" stroke="url(#face)" stroke-width="94" stroke-linecap="round"/>
+    <path d="M620 321h115" fill="none" stroke="#f7f7f7" stroke-width="94" stroke-linecap="round"/>
 
     <!-- t -->
     <rect x="828" y="28" width="114" height="454" rx="57"/>
