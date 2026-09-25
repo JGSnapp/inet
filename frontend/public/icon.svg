@@ -23,9 +23,9 @@
     <rect x="168" y="160" width="314" height="124" rx="62"/>
 
     <!-- e: one contour preserves matching left corners and rounded bar ends -->
-    <path d="M558 153H748a64 64 0 0 1 0 128H622v80h126a64 64 0 0 1 0 128H558a64 64 0 0 1-64-64V217a64 64 0 0 1 64-64Z"/>
-    <path d="M620 321h115" fill="none" stroke="#050505" stroke-width="126" stroke-linecap="round"/>
-    <path d="M620 321h115" fill="none" stroke="#f7f7f7" stroke-width="94" stroke-linecap="round"/>
+    <path d="M549 153H750a55 55 0 0 1 0 110H622v116h128a55 55 0 0 1 0 110H549a55 55 0 0 1-55-55V208a55 55 0 0 1 55-55Z"/>
+    <path d="M620 321h115" fill="none" stroke="#050505" stroke-width="100" stroke-linecap="round"/>
+    <path d="M620 321h115" fill="none" stroke="#f7f7f7" stroke-width="72" stroke-linecap="round"/>
 
     <!-- t -->
     <rect x="828" y="28" width="114" height="454" rx="57"/>
