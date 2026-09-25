@@ -115,8 +115,8 @@ button:focus-visible, a:focus-visible, select:focus-visible, textarea:focus-visi
 .rail-bottom { color: var(--subtle); border-color: var(--line); }
 
 .topbar {
-  height: 62px;
-  padding: 0 26px;
+  height: 56px;
+  padding: 0 22px;
   color: var(--muted);
   background: color-mix(in srgb, var(--paper) 92%, transparent);
   border-color: var(--line);
@@ -125,6 +125,20 @@ button:focus-visible, a:focus-visible, select:focus-visible, textarea:focus-visi
   top: 0;
   z-index: 10;
 }
+.minimal-topbar { justify-content: flex-start; gap: 0; }
+.brand-menu {
+  display: grid;
+  width: 58px;
+  height: 38px;
+  padding: 0;
+  place-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.brand-menu:hover { background: var(--surface-2); }
+.brand-menu:focus-visible { outline: 1px solid var(--accent); outline-offset: 2px; }
 .topbar>span { max-width: min(65vw, 700px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .topbar b { color: var(--ink); font-weight: 520; }
 .topbar-actions, .private-label { display: flex; align-items: center; gap: 9px; }
@@ -147,15 +161,15 @@ button:focus-visible, a:focus-visible, select:focus-visible, textarea:focus-visi
 .search-page { max-width: 720px; padding: 0 28px 32px; }
 .search-page:not(.has-result) {
   display: flex;
-  min-height: calc(100vh - 62px);
+  min-height: calc(100vh - 56px);
   flex-direction: column;
   justify-content: center;
   padding-bottom: 9vh;
 }
-.welcome-block { text-align: left; margin-bottom: 28px; }
+.welcome-block { text-align: left; margin-bottom: 20px; }
 .welcome-block p { margin: 0 0 12px; color: var(--muted); font-size: 12px; }
 .welcome-block h1 {
-  margin: 0 0 12px;
+  margin: 0;
   color: var(--ink);
   font-size: clamp(30px, 4vw, 44px);
   font-weight: 520;
