@@ -609,3 +609,119 @@ button:focus-visible, a:focus-visible, select:focus-visible, textarea:focus-visi
   .progress-drawer { width: 100%; padding: 18px; }
   .composer-settings-popover { position: fixed; right: 12px; bottom: 76px; left: 12px; width: auto; }
 }
+
+/* Navigation is a temporary drawer: when closed it consumes no screen space. */
+.research-app .workspace,
+.rail-collapsed .workspace,
+.rail-expanded .workspace {
+  width: 100%;
+  margin-left: 0;
+}
+.rail,
+.rail-collapsed .rail,
+.rail-expanded .rail {
+  inset: 0 auto 0 0;
+  z-index: 50;
+  width: min(260px, calc(100vw - 32px));
+  height: 100vh;
+  padding: 18px 14px 14px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+  border: 0;
+  border-right: 1px solid var(--line);
+  box-shadow: 18px 0 50px rgb(0 0 0 / 24%);
+  transform: none;
+}
+.rail-expanded .rail { display: flex; }
+.rail-collapsed .rail { display: none; pointer-events: none; }
+.rail-head { display: flex; min-height: 42px; align-items: center; justify-content: space-between; gap: 10px; }
+.wordmark,
+.rail-collapsed .wordmark {
+  min-width: 0;
+  padding: 0 6px;
+  justify-content: flex-start;
+  font-size: 0;
+}
+.wordmark img { display: block; width: 142px; height: 36px; object-fit: cover; object-position: center; }
+.empty-logo { display: block; width: 112px; height: 58px; object-fit: contain; }
+.wordmark>span:last-child,
+.rail-collapsed .wordmark>span:last-child {
+  display: inline-block;
+  flex: 0 0 auto;
+  margin: 1px 0 0 -16px;
+  font-size: 8px;
+}
+.rail-close {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  place-items: center;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.rail-close:hover { color: var(--ink); background: var(--surface-2); }
+.rail-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  padding: 0;
+  background: rgb(0 0 0 / 38%);
+  border: 0;
+  cursor: default;
+  backdrop-filter: blur(2px);
+}
+.nav-icon { display: inline-flex; width: 17px; height: 17px; flex: 0 0 17px; align-items: center; justify-content: center; }
+.nav-icon svg { display: block; width: 100%; height: 100%; }
+.rail nav button>span.nav-icon,
+.dev-nav summary>span.nav-icon { width: 17px; color: currentColor; font-size: inherit; }
+.rail nav button,
+.dev-nav summary,
+.rail-collapsed .rail nav button,
+.rail-collapsed .dev-nav summary { justify-content: flex-start; padding: 9px 10px; gap: 10px; }
+.rail nav button b,
+.dev-nav summary b { font-size: 11px; }
+.nav-section-label { margin: 17px 10px 6px; color: var(--subtle); font-size: 8px; letter-spacing: .14em; }
+.dev-nav button { padding-left: 36px !important; }
+.new-research,
+.rail-collapsed .new-research {
+  width: 100%;
+  height: 40px;
+  margin: 22px 0 16px;
+  padding: 9px 11px;
+  justify-content: flex-start;
+  gap: 10px;
+  font-size: 12px;
+}
+.new-research>span.nav-icon { display: inline-flex; }
+.rail-expanded .new-research>span:last-child { display: inline; }
+.topbar-logo { display: block; width: 84px; height: 28px; margin-left: -8px; object-fit: cover; object-position: center; }
+.rail-toggle .nav-icon { width: 16px; height: 16px; }
+
+@media (max-width: 760px) {
+  .research-app { padding-bottom: 0; }
+  .rail-toggle { display: grid; }
+  .rail,
+  .rail-collapsed .rail,
+  .rail-expanded .rail {
+    inset: 0 auto 0 0;
+    width: min(280px, calc(100vw - 28px));
+    height: 100vh;
+    padding: 18px 14px 14px;
+  }
+  .wordmark, .history-label, .history, .rail-bottom, .dev-nav { display: flex; }
+  .history { display: block; }
+  .dev-nav { display: block; }
+  .new-research { width: 100%; height: 40px; margin: 22px 0 16px; padding: 9px 11px; }
+  .new-research>span:last-child { display: inline; }
+  .rail nav { display: grid; flex: initial; }
+  .rail nav>button { height: auto; padding: 9px 10px; font-size: 11px; justify-content: flex-start; }
+  .rail nav button>span.nav-icon { font-size: inherit; }
+  .topbar-logo { width: 54px; }
+  .search-page:not(.has-result) { min-height: calc(100vh - 56px); }
+  .search-page.has-result { padding-bottom: 28px; }
+  .follow-up { bottom: 12px; }
+}

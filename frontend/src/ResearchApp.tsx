@@ -25,7 +25,22 @@ const names:Record<string,string>={router:'Маршрутизатор',cache:'К
 const statuses:Record<string,string>={queued:'В очереди',running:'В работе',completed:'Готово',success:'Успешно',failed:'Ошибка',error:'Ошибка',skipped:'Пропущено',cancelled:'Остановлен',interrupted:'Прерван'};
 function toolName(stage:string){const raw=stage.replace(/^deep:/,'').replace(/^managed:/,'').replace(/^agent_search:/,'').replace(/^agent_fetch:/,'');return names[raw]||({deep_search:'Расширенный поиск',deep_research:'Оркестратор исследования',agent_plan:'Агент-планировщик',agent_decision:'Отбор источников',agentic_research:'Автономный исследователь',agent_link_choice:'Выбор маршрута ссылки',adaptive_pipeline:'Конструктор pipeline'} as Record<string,string>)[raw]||raw.replaceAll('_',' ')}
 function activityVerb(event?:Event){if(!event)return 'Ожидает следующего действия';const stage=event.stage;if(stage==='agent_plan')return 'Продумывает план исследования';if(stage==='agent_decision'||stage==='agent_link_choice')return 'Решает, какие ссылки исследовать';if(stage.includes('workspace')||stage.includes('repair'))return 'Исправляет код или маршрут';if(stage.includes('development')||stage.includes('generate')||stage.includes('discover'))return 'Разрабатывает или подключает инструмент';if(stage.includes('pipeline'))return 'Проектирует и проверяет pipeline';if(stage==='deep_search'||stage.includes('search')||stage.includes('searxng')||stage==='duckduckgo')return 'Ищет источники';if(stage==='synthesis')return 'Собирает аналитический обзор';if(stage.startsWith('deep:')||stage.startsWith('agent_fetch:')||['httpx','curl_cffi','jina','official','playwright','playwright_wait','browser_agent'].includes(stage))return 'Читает выбранный сайт';return event.detail||'Выполняет этап'}
-function Mark(){return <span className="inet-mark">✳</span>}
+type NavIconName='menu'|'close'|'plus'|'chat'|'library'|'tools'|'traces'|'system'|'automation';
+function NavIcon({name}:{name:NavIconName}){
+  const paths:Record<NavIconName,React.ReactNode>={
+    menu:<><path d="M4 7h16M4 12h16M4 17h16"/></>,
+    close:<><path d="m6 6 12 12M18 6 6 18"/></>,
+    plus:<><path d="M12 5v14M5 12h14"/></>,
+    chat:<><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/></>,
+    library:<><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V4H6.5A2.5 2.5 0 0 0 4 6.5z"/><path d="M8 7h8M8 11h7"/></>,
+    tools:<><path d="M14.7 6.3a4 4 0 0 0-5-5L7.4 3.6l3 3L8 9 5 6 2.7 8.3a4 4 0 0 0 5 5L16.4 22l5.6-5.6-8.7-8.7a4 4 0 0 0 1.4-1.4z"/></>,
+    traces:<><path d="M4 5v5a2 2 0 0 0 2 2h12M14 8l4 4-4 4M8 19h8"/></>,
+    system:<><circle cx="12" cy="12" r="9"/><path d="M8 12h2l1.5-4 2 8 1.5-4h2"/></>,
+    automation:<><rect x="3" y="3" width="6" height="6" rx="1"/><rect x="15" y="3" width="6" height="6" rx="1"/><rect x="9" y="15" width="6" height="6" rx="1"/><path d="M6 9v3h12V9M12 12v3"/></>
+  };
+  return <span className="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">{paths[name]}</svg></span>;
+}
+function Mark(){return <img className="empty-logo" src="/icon.png" alt=""/>}
 function SettingsPopover({settings,onChange,instruction,setInstruction,archive,setArchive}:{settings:ResearchSettings;onChange:(next:ResearchSettings)=>void;instruction:string;setInstruction:(value:string)=>void;archive:boolean;setArchive:(value:boolean)=>void}){
   return <details className="composer-settings"><summary aria-label="Research settings" title="Research settings">⚙</summary><div className="composer-settings-popover"><header><strong>Research settings</strong><small>Applied to new research</small></header><label><span>Persistence <b>{settings.persistence_level}/4</b></span><input type="range" min="1" max="4" step="1" value={settings.persistence_level} onChange={e=>onChange({...settings,persistence_level:Number(e.target.value)})}/></label><label className="settings-check"><span>Reflect after answer</span><input type="checkbox" checked={settings.reflection_enabled} onChange={e=>onChange({...settings,reflection_enabled:e.target.checked})}/></label><label className={!settings.reflection_enabled?'setting-disabled':''}><span>Reflection depth <b>{settings.reflection_level}/4</b></span><input disabled={!settings.reflection_enabled} type="range" min="1" max="4" step="1" value={settings.reflection_level} onChange={e=>onChange({...settings,reflection_level:Number(e.target.value)})}/></label><label className="settings-check"><span>Allow Wayback snapshots</span><input type="checkbox" checked={archive} onChange={e=>setArchive(e.target.checked)}/></label><label className="settings-instruction"><span>Agent instructions</span><textarea maxLength={2000} placeholder="Goals, constraints, preferred sources…" value={instruction} onChange={e=>setInstruction(e.target.value)}/></label></div></details>
 }
@@ -33,7 +48,6 @@ function SettingsPopover({settings,onChange,instruction,setInstruction,archive,s
 export default function ResearchApp(){
   const [page,setPage]=useState('search');
   const [theme,setTheme]=useState<'dark'|'light'>(()=>(localStorage.getItem('inet-theme') as 'dark'|'light')||'dark');
-  const [devOpen,setDevOpen]=useState(false);
   const [sidebarOpen,setSidebarOpen]=useState(false);
   const [progressOpen,setProgressOpen]=useState(false);
   const [runs,setRuns]=useState<Run[]>([]);
@@ -83,7 +97,7 @@ export default function ResearchApp(){
     document.documentElement.dataset.theme=theme;
     localStorage.setItem('inet-theme',theme);
   },[theme]);
-  useEffect(()=>{const close=(e:KeyboardEvent)=>{if(e.key==='Escape')setProgressOpen(false)};window.addEventListener('keydown',close);return()=>window.removeEventListener('keydown',close)},[]);
+  useEffect(()=>{const close=(e:KeyboardEvent)=>{if(e.key==='Escape'){setProgressOpen(false);setSidebarOpen(false);}};window.addEventListener('keydown',close);return()=>window.removeEventListener('keydown',close)},[]);
   async function submit(text=query){
     if(!text.trim()||busy)return;
     setBusy(true);setError('');
@@ -104,22 +118,21 @@ export default function ResearchApp(){
   const routeGroups=Object.values((current?.events||[]).filter(e=>e.target&&e.span_id).reduce<Record<string,{target:string;events:Event[]}>>((groups,item)=>{const key=item.target!;const group=groups[key]||(groups[key]={target:key,events:[]});const index=group.events.findIndex(e=>e.span_id===item.span_id);if(index>=0)group.events[index]=item;else group.events.push(item);return groups;},{}));
   const active=current?.status==='running'||current?.status==='queued';
   return <div className={`research-app ${sidebarOpen?'rail-expanded':'rail-collapsed'}`}>
-    <aside className="rail">
-      <a href="/" className="wordmark" onClick={e=>{e.preventDefault();setPage('search');setSelected(null);}}><Mark/>inet<span>beta</span></a>
-      <button className="new-research" aria-label="New chat" title="New chat" onClick={()=>{setSelected(null);setPage('search');setError('');}}>＋ <span>New chat</span></button>
+    <aside className="rail" aria-hidden={!sidebarOpen}>
+      <div className="rail-head"><a href="/" className="wordmark" onClick={e=>{e.preventDefault();setPage('search');setSelected(null);setSidebarOpen(false);}}><img src="/icon.png" alt="INET"/><span>beta</span></a><button className="rail-close" onClick={()=>setSidebarOpen(false)} aria-label="Close navigation"><NavIcon name="close"/></button></div>
+      <button className="new-research" aria-label="New chat" title="New chat" onClick={()=>{setSelected(null);setPage('search');setError('');setSidebarOpen(false);}}><NavIcon name="plus"/><span>New chat</span></button>
       <nav aria-label="Main navigation">
-        {[['search','⌂','Chat'],['catalog','□','Library']].map(([id,icon,label])=><button key={id} title={label} aria-label={label} className={page===id?'nav-active':''} onClick={()=>setPage(id)}><span aria-hidden="true">{icon}</span><b>{label}</b></button>)}
-        <details className="dev-nav" open={devOpen||['map','system','control'].includes(page)} onToggle={e=>setDevOpen(e.currentTarget.open)}>
-          <summary title="Developer tools"><span>···</span><b>Developer tools</b></summary>
-          {[['map','↳','Traces'],['system','○','System'],['control','⌘','Automation']].map(([id,icon,label])=><button key={id} title={label} aria-label={label} className={page===id?'nav-active':''} onClick={()=>setPage(id)}><span aria-hidden="true">{icon}</span><b>{label}</b>{id==='map'&&runs.some(r=>r.status==='running')&&<i className="live-dot"/>}</button>)}
-        </details>
+        {[['search','chat','Chat'],['catalog','library','Library']].map(([id,icon,label])=><button key={id} title={label} aria-label={label} className={page===id?'nav-active':''} onClick={()=>{setPage(id);setSidebarOpen(false);}}><NavIcon name={icon as NavIconName}/><b>{label}</b></button>)}
+        <div className="nav-section-label">TOOLS</div>
+        {[['map','traces','Traces'],['system','system','System'],['control','automation','Automation']].map(([id,icon,label])=><button key={id} title={label} aria-label={label} className={page===id?'nav-active':''} onClick={()=>{setPage(id);setSidebarOpen(false);}}><NavIcon name={icon as NavIconName}/><b>{label}</b>{id==='map'&&runs.some(r=>r.status==='running')&&<i className="live-dot"/>}</button>)}
       </nav>
       <div className="history-label">RECENT <span>{runs.length}</span></div>
-      <div className="history">{runs.length?runs.map(r=><button key={r.id} className={selected===r.id?'selected':''} onClick={()=>{openRun(r.id);setPage('search');}}><span className={`tiny-dot ${r.status}`}/><span>{r.query}</span></button>):<p>Your conversations will appear here.</p>}</div>
+      <div className="history">{runs.length?runs.map(r=><button key={r.id} className={selected===r.id?'selected':''} onClick={()=>{openRun(r.id);setPage('search');setSidebarOpen(false);}}><span className={`tiny-dot ${r.status}`}/><span>{r.query}</span></button>):<p>Your conversations will appear here.</p>}</div>
       <div className="rail-bottom"><span className={connected?'live-dot':'offline-dot'}/><span>{connected?'Connected':'Offline'}</span><small>v0.2</small></div>
     </aside>
+    {sidebarOpen&&<button className="rail-backdrop" aria-label="Close navigation" onClick={()=>setSidebarOpen(false)}/>}
     <main className="workspace">
-      <header className="topbar"><button className="rail-toggle" onClick={()=>setSidebarOpen(value=>!value)} aria-label={sidebarOpen?'Collapse sidebar':'Expand sidebar'} title={sidebarOpen?'Collapse sidebar':'Expand sidebar'}>☰</button><span><b>{{search:current?.query||'New chat',map:'Research traces',catalog:'Tool library',system:'System status',control:'Automation'}[page]}</b></span><div className="topbar-actions"><span className="private-label"><i className={connected?'live-dot':'offline-dot'}/>{connected?'Local':'Offline'}</span><button className="theme-toggle" onClick={()=>setTheme(theme==='dark'?'light':'dark')} aria-label={theme==='dark'?'Use light theme':'Use dark theme'}>{theme==='dark'?'☼':'◐'}</button></div></header>
+      <header className="topbar"><button className="rail-toggle" onClick={()=>setSidebarOpen(value=>!value)} aria-label={sidebarOpen?'Close navigation':'Open navigation'} title={sidebarOpen?'Close navigation':'Open navigation'}><NavIcon name="menu"/></button><img className="topbar-logo" src="/icon.png" alt="INET"/><span><b>{{search:current?.query||'New chat',map:'Research traces',catalog:'Tool library',system:'System status',control:'Automation'}[page]}</b></span><div className="topbar-actions"><span className="private-label"><i className={connected?'live-dot':'offline-dot'}/>{connected?'Local':'Offline'}</span><button className="theme-toggle" onClick={()=>setTheme(theme==='dark'?'light':'dark')} aria-label={theme==='dark'?'Use light theme':'Use dark theme'}>{theme==='dark'?'☼':'◐'}</button></div></header>
       {page==='control'&&<ControlPanel/>}
       {error&&<div className="error-banner" role="alert">{error}<button aria-label="Закрыть ошибку" onClick={()=>setError('')}>×</button></div>}
       {page==='search'&&<div className={`search-page ${current?'has-result':''}`}>
