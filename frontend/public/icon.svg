@@ -17,6 +17,7 @@
     <circle cx="82" cy="91" r="57"/>
     <rect x="25" y="160" width="114" height="322" rx="57"/>
 
+    <g transform="translate(-12 0)">
     <!-- n -->
     <rect x="168" y="211" width="114" height="271" rx="57"/>
     <rect x="368" y="211" width="114" height="271" rx="57"/>
@@ -30,5 +31,6 @@
     <!-- t -->
     <rect x="828" y="28" width="114" height="454" rx="57"/>
     <rect x="820" y="160" width="224" height="124" rx="62"/>
+    </g>
   </g>
 </svg>

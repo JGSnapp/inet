@@ -641,6 +641,7 @@ button:focus-visible, a:focus-visible, select:focus-visible, textarea:focus-visi
   min-width: 0;
   padding: 0 6px;
   justify-content: flex-start;
+  gap: 3px;
   font-size: 0;
 }
 .wordmark img { display: block; width: 88px; height: 43px; object-fit: contain; }
@@ -649,7 +650,7 @@ button:focus-visible, a:focus-visible, select:focus-visible, textarea:focus-visi
 .rail-collapsed .wordmark>span:last-child {
   display: inline-block;
   flex: 0 0 auto;
-  margin: 1px 0 0 -16px;
+  margin: 1px 0 0;
   font-size: 8px;
 }
 .rail-close {
