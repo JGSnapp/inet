@@ -10,6 +10,10 @@
     <filter id="lift" x="-8%" y="-8%" width="116%" height="122%">
       <feDropShadow dx="0" dy="5" stdDeviation="4" flood-color="#8a8a8a" flood-opacity=".55"/>
     </filter>
+    <mask id="e-cutout" maskUnits="userSpaceOnUse" x="480" y="140" width="350" height="365">
+      <rect x="480" y="140" width="350" height="365" fill="#fff"/>
+      <path d="M830 263H680a59 59 0 0 0 0 118h150z" fill="#000"/>
+    </mask>
   </defs>
 
   <g fill="url(#face)" stroke="#050505" stroke-width="15" stroke-linejoin="round" filter="url(#lift)">
@@ -22,9 +26,9 @@
     <rect x="368" y="211" width="114" height="271" rx="57"/>
     <rect x="168" y="160" width="314" height="124" rx="62"/>
 
-    <!-- e: layered strokes form one continuous rounded tube -->
-    <path d="M744 220H612c-59 0-92 39-92 101s33 101 92 101h132" fill="none" stroke="#050505" stroke-width="126" stroke-linecap="round"/>
-    <path d="M744 220H612c-59 0-92 39-92 101s33 101 92 101h132" fill="none" stroke="url(#face)" stroke-width="94" stroke-linecap="round"/>
+    <!-- e: the outer-left and inner-left corners use matching local radii -->
+    <rect x="494" y="153" width="318" height="336" rx="64" mask="url(#e-cutout)"/>
+    <path d="M830 263H680a59 59 0 0 0 0 118h150" fill="none" stroke="#050505" stroke-width="15"/>
     <path d="M620 321h115" fill="none" stroke="#050505" stroke-width="126" stroke-linecap="round"/>
     <path d="M620 321h115" fill="none" stroke="#f7f7f7" stroke-width="94" stroke-linecap="round"/>
 
