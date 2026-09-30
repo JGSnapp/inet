@@ -4,6 +4,7 @@ import os
 from typing import Any
 
 from config import settings
+from i18n import tr
 
 
 SUPPORTED_PROVIDERS = (
@@ -20,14 +21,28 @@ SUPPORTED_PROVIDERS = (
 def _required_env(name: str) -> str:
     value = os.getenv(name, "").strip()
     if not value:
-        raise ValueError(f"Для выбранного AI-провайдера задайте {name}.")
+        raise ValueError(
+            tr(
+                f"Для выбранного AI-провайдера задайте {name}.",
+                f"Set {name} for the selected AI provider.",
+            )
+        )
     return value
+
+
+def _timeout() -> Any:
+    """Fail fast on stuck connections and let the client retry instead of waiting 10 minutes."""
+    import httpx
+
+    total = float(os.getenv("AI_TIMEOUT", "180"))
+    return httpx.Timeout(total, connect=float(os.getenv("AI_CONNECT_TIMEOUT", "10")))
 
 
 def create_chat_model() -> Any:
     """Create one LangChain chat model from the common environment settings."""
     provider = settings.provider
     common = {"model": settings.model, "temperature": settings.temperature}
+    retries = int(os.getenv("AI_MAX_RETRIES", "4"))
 
     if provider == "openai":
         from langchain_openai import ChatOpenAI
@@ -35,7 +50,8 @@ def create_chat_model() -> Any:
         return ChatOpenAI(
             **common,
             api_key=_required_env("OPENAI_API_KEY"),
-            max_retries=2,
+            timeout=_timeout(),
+            max_retries=retries,
         )
 
     if provider == "anthropic":
@@ -44,7 +60,7 @@ def create_chat_model() -> Any:
         return ChatAnthropic(
             **common,
             api_key=_required_env("ANTHROPIC_API_KEY"),
-            max_retries=2,
+            max_retries=retries,
         )
 
     if provider == "google":
@@ -53,7 +69,7 @@ def create_chat_model() -> Any:
         return ChatGoogleGenerativeAI(
             **common,
             google_api_key=_required_env("GOOGLE_API_KEY"),
-            max_retries=2,
+            max_retries=retries,
         )
 
     if provider == "groq":
@@ -62,7 +78,7 @@ def create_chat_model() -> Any:
         return ChatGroq(
             **common,
             api_key=_required_env("GROQ_API_KEY"),
-            max_retries=2,
+            max_retries=retries,
         )
 
     if provider == "deepseek":
@@ -71,7 +87,7 @@ def create_chat_model() -> Any:
         return ChatDeepSeek(
             **common,
             api_key=_required_env("DEEPSEEK_API_KEY"),
-            max_retries=2,
+            max_retries=retries,
         )
 
     if provider == "ollama":
@@ -89,8 +105,14 @@ def create_chat_model() -> Any:
             **common,
             api_key=os.getenv("AI_API_KEY", "not-needed"),
             base_url=os.getenv("AI_BASE_URL", "http://localhost:11434/v1"),
-            max_retries=2,
+            timeout=_timeout(),
+            max_retries=retries,
         )
 
     choices = ", ".join(SUPPORTED_PROVIDERS)
-    raise ValueError(f"Неизвестный AI_PROVIDER={provider!r}. Доступно: {choices}.")
+    raise ValueError(
+        tr(
+            f"Неизвестный AI_PROVIDER={provider!r}. Доступно: {choices}.",
+            f"Unknown AI_PROVIDER={provider!r}. Available: {choices}.",
+        )
+    )

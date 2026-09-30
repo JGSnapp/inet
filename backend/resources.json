@@ -26,64 +26,6 @@
       ]
     },
     {
-      "id": "resource-002",
-      "name": "Лайф",
-      "url": "https://t.me/akagodlike",
-      "links": {
-        "homepage": "https://t.me/akagodlike"
-      },
-      "description": "😳 [**Лайф**](https://t.me/akagodlike) | 📲 [**Зеркало Max**](https://max.ru/python2day)",
-      "category": "community",
-      "integration_status": "candidate",
-      "verification_status": "unverified",
-      "quota": {
-        "limit": null,
-        "period": null,
-        "verified_at": null
-      },
-      "provenance": [
-        {
-          "file": "VISION.md",
-          "line": 56,
-          "original_url": "https://t.me/akagodlike"
-        },
-        {
-          "file": "VISION.md",
-          "line": 119,
-          "original_url": "https://t.me/akagodlike"
-        }
-      ]
-    },
-    {
-      "id": "resource-003",
-      "name": "Зеркало Max",
-      "url": "https://max.ru/python2day",
-      "links": {
-        "homepage": "https://max.ru/python2day"
-      },
-      "description": "😳 [**Лайф**](https://t.me/akagodlike) | 📲 [**Зеркало Max**](https://max.ru/python2day)",
-      "category": "community",
-      "integration_status": "candidate",
-      "verification_status": "unverified",
-      "quota": {
-        "limit": null,
-        "period": null,
-        "verified_at": null
-      },
-      "provenance": [
-        {
-          "file": "VISION.md",
-          "line": 56,
-          "original_url": "https://max.ru/python2day"
-        },
-        {
-          "file": "VISION.md",
-          "line": 119,
-          "original_url": "https://max.ru/python2day"
-        }
-      ]
-    },
-    {
       "id": "resource-004",
       "name": "Firecrawl",
       "url": "https://github.com/firecrawl/firecrawl",
@@ -2898,8 +2840,18 @@
       "access_model": "mixed_free_and_paid",
       "license": null,
       "verified_at": 1790256000,
-      "quota": {"limit": null, "period": null, "verified_at": null},
-      "provenance": [{"source": "user_submission", "verified_with": "GitHub repository", "original_url": "https://github.com/TheGP/untidetect-tools"}]
+      "quota": {
+        "limit": null,
+        "period": null,
+        "verified_at": null
+      },
+      "provenance": [
+        {
+          "source": "user_submission",
+          "verified_with": "GitHub repository",
+          "original_url": "https://github.com/TheGP/untidetect-tools"
+        }
+      ]
     },
     {
       "id": "resource-110",
@@ -2917,8 +2869,18 @@
       "license": "MIT",
       "repository": "vibheksoni/stealth-browser-mcp",
       "verified_at": 1790256000,
-      "quota": {"limit": null, "period": null, "verified_at": null},
-      "provenance": [{"source": "user_submission", "verified_with": "GitHub README and LICENSE", "original_url": "https://github.com/vibheksoni/stealth-browser-mcp"}]
+      "quota": {
+        "limit": null,
+        "period": null,
+        "verified_at": null
+      },
+      "provenance": [
+        {
+          "source": "user_submission",
+          "verified_with": "GitHub README and LICENSE",
+          "original_url": "https://github.com/vibheksoni/stealth-browser-mcp"
+        }
+      ]
     },
     {
       "id": "resource-111",
@@ -2936,8 +2898,18 @@
       "license": "MPL-2.0",
       "repository": "daijro/camoufox",
       "verified_at": 1790256000,
-      "quota": {"limit": null, "period": null, "verified_at": null},
-      "provenance": [{"source": "user_submission", "verified_with": "GitHub README, pyproject and LICENSE", "original_url": "https://github.com/daijro/camoufox"}]
+      "quota": {
+        "limit": null,
+        "period": null,
+        "verified_at": null
+      },
+      "provenance": [
+        {
+          "source": "user_submission",
+          "verified_with": "GitHub README, pyproject and LICENSE",
+          "original_url": "https://github.com/daijro/camoufox"
+        }
+      ]
     },
     {
       "id": "resource-112",
@@ -2955,8 +2927,18 @@
       "license": "MIT",
       "repository": "alphap365/open-news",
       "verified_at": 1790256000,
-      "quota": {"limit": null, "period": null, "verified_at": null},
-      "provenance": [{"source": "user_submission", "verified_with": "GitHub README, pyproject and LICENSE", "original_url": "https://github.com/alphap365/open-news"}]
+      "quota": {
+        "limit": null,
+        "period": null,
+        "verified_at": null
+      },
+      "provenance": [
+        {
+          "source": "user_submission",
+          "verified_with": "GitHub README, pyproject and LICENSE",
+          "original_url": "https://github.com/alphap365/open-news"
+        }
+      ]
     },
     {
       "id": "resource-113",
@@ -2974,8 +2956,18 @@
       "license": "Apache-2.0",
       "repository": "h4ckf0r0day/obscura",
       "verified_at": 1790256000,
-      "quota": {"limit": null, "period": null, "verified_at": null},
-      "provenance": [{"source": "user_submission", "verified_with": "GitHub README and LICENSE", "original_url": "https://github.com/h4ckf0r0day/obscura"}]
+      "quota": {
+        "limit": null,
+        "period": null,
+        "verified_at": null
+      },
+      "provenance": [
+        {
+          "source": "user_submission",
+          "verified_with": "GitHub README and LICENSE",
+          "original_url": "https://github.com/h4ckf0r0day/obscura"
+        }
+      ]
     },
     {
       "id": "resource-114",
@@ -2992,8 +2984,18 @@
       "access_model": "free_trial",
       "license": "proprietary_service",
       "verified_at": 1790256000,
-      "quota": {"limit": 100, "period": "signup_trial", "verified_at": 1790256000},
-      "provenance": [{"source": "user_submission", "verified_with": "official product, pricing and API pages", "original_url": "https://s1.dev"}]
+      "quota": {
+        "limit": 100,
+        "period": "signup_trial",
+        "verified_at": 1790256000
+      },
+      "provenance": [
+        {
+          "source": "user_submission",
+          "verified_with": "official product, pricing and API pages",
+          "original_url": "https://s1.dev"
+        }
+      ]
     }
   ]
 }

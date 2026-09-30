@@ -1,0 +1,8 @@
+#!/usr/bin/env sh
+# INET launcher: uses the project virtualenv created by install.sh
+ROOT="$(cd "$(dirname "$0")" && pwd -P)"
+if [ -x "$ROOT/.venv/bin/python" ]; then
+  exec "$ROOT/.venv/bin/python" "$ROOT/backend/cli.py" "$@"
+fi
+echo "INET is not installed yet. Run ./install.sh first." >&2
+exit 1
