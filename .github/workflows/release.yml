@@ -1,0 +1,24 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  ui:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm --prefix frontend ci && npm --prefix frontend run build
+      # Installers download this asset when Node.js is not available.
+      - run: tar -czf inet-ui.tar.gz -C frontend/build .
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: inet-ui.tar.gz
+          generate_release_notes: true

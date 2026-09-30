@@ -1,41 +1,61 @@
-# Проверка полного контура
+# Проверка
 
-## Подтверждено
+## Автоматические проверки (CI)
 
-- `python -m pytest backend -q`: **49 тестов пройдены**. Есть предупреждение deprecated alias внутри Starlette/AnyIO; ошибок тестов нет.
-- `npm.cmd --prefix frontend run build`: production-сборка успешна, без предупреждений ESLint. Node уведомляет об устаревшем API внутри react-scripts.
-- `docker compose config --quiet`: конфигурация сервисов, изолированной сети, volumes и зависимостей валидна.
-- `git diff --check`: ошибок whitespace нет.
-- `python scripts/live_providers.py`: реальные HTTPX, curl_cffi, Playwright с ожиданием селектора и официальный JSON GitHub вернули содержимое.
-- `python scripts/browser_smoke.py`: Chromium проверил поиск, источники, карту, каталог, систему, лабораторию, сохранение ключа, правил сайта и плана парсинга. JavaScript-ошибок нет, на ширине 390 px горизонтального переполнения нет.
-- Полный `docker compose up --build -d` успешен: backend healthy, frontend HTTP 200, sandbox/egress/fixtures работают, SearXNG запущен как управляемый сервис.
-- Живой pipeline для Python docs прошёл `semantic-html`, был сохранён и затем выбран Research-маршрутизатором в сквозном запросе.
-- OpenAlex был обнаружен как unauthenticated JSON API; детерминированно полученный ConnectorSpec прошёл реальный запрос, вернул 5 sources и был включён с параметрами `search` / `per-page`.
+| Команда | Что проверяет |
+| --- | --- |
+| `ruff check backend sandbox scripts sdk` | Ошибки импорта, неиспользуемый код, синтаксис |
+| `ruff format --check backend sandbox scripts sdk` | Единое форматирование |
+| `pytest backend -q` | 67 тестов: резервные переходы, кэш и TTL, бюджеты и квоты, отмена и возобновление, фильтрация адресов (SSRF), XML/XXE, шифрование секретов, discovery, очередь, генерация и продвижение адаптеров, canary и откат, parsing pipelines, релевантность поисковой выдачи, релевантность официальных фидов, песочница с подменённым Docker-клиентом, язык сообщений |
+| `npm --prefix frontend run build` | Типы TypeScript и production-сборка Vite |
 
-## Что покрывают тесты
+## Ручная проверка на живой сети (30.09.2026, Windows 11, без Docker)
 
-Резервные переходы, дедупликация, положительный/отрицательный TTL, резервирование бюджета, отмена и checkpoint resume, сохранение истории, качество контента, фильтрация адресов, gzip-ответы, шифрование секретов, пользовательские API, удалённые квоты/cooldown, discovery, персистентная очередь, структурированная генерация адаптера, 40-проверочный gate для fetch, запрет продвижения до испытаний, canary/rollback, исправление ревизий, CSS-политики, crawl, фильтрация прокси, XML/XXE, запрет утечки авторизации на redirect, managed-service lifecycle, parsing pipelines, drift-monitor, API probing, connector inference и отклонённые connector revisions.
+LLM: OpenAI-совместимый API, модель `deepseek/deepseek-v4-pro-0813`.
 
-Sandbox-тесты проверяют параметры запуска контейнера, отсутствие host mounts/секретов, обязательную очистку, фиксированные зависимости, фильтр egress и единственное внутреннее исключение для fixtures. Эти проверки используют подменённый Docker-клиент, а не реально работающий daemon.
+- `inet doctor`: все зависимости найдены, LLM отвечает.
+- `POST /api/search` «free-threaded CPython 3.14 status»: DuckDuckGo упал по таймауту, DDGS вернул 5 релевантных
+  источников (docs.python.org, py-free-threading.github.io и др.), ответ синтезирован со ссылками.
+- `POST /api/fetch` https://peps.python.org/pep-0703/: страница прочитана через HTTPX (60 000 символов).
+  До исправления ступень `official` подменяла статью общим RSS сайта.
+- `POST /tavily/search` и `POST /firecrawl/v1/scrape`: ответы в форматах Tavily и Firecrawl.
+- MCP по stdio (`inet mcp`): клиент MCP получил инструменты `web_search`, `fetch_url`, `research`
+  и успешно вызвал `fetch_url`.
+- `install.ps1` на чистой копии репозитория: окружение создано, `inet doctor` проходит.
+- `install.sh` в чистой Ubuntu 24.04 (WSL2, без Node.js и без sudo): uv, Python 3.12, зависимости и
+  Chromium установлены; `inet doctor` проходит; `inet fetch https://example.com` сам поднял сервер
+  и прочитал страницу. Повторный запуск установщика (обновление) проходит без ошибок. Готовый UI
+  скачивается из GitHub Release, поэтому до первого релиза установщик честно сообщает, что UI нет.
+- Глубокое исследование «Open-source alternatives to Perplexity for self-hosted AI web search in 2026»:
+  8,5 минуты, 7 подзапросов, 20 выбранных сайтов, прочитано 15 на 13 доменах, 87 инструментальных вызовов,
+  2 сообщения агента из 120. Отчёт со ссылками собран моделью; карта маршрутов показывает переходы
+  official → HTTPX → Mobile HTTPX → curl_cffi → Trafilatura для трудных сайтов.
+- `scripts/capture_readme.py --lang en|ru`: сквозной сценарий в Chromium на английском и русском
+  интерфейсе (глубокое исследование, ход работы агента, карта маршрутов, каталог, состояние системы).
+  Английский прогон 01.10.2026: 12 минут, 20 подзапросов, прочитано 12 сайтов из 15 на 8 доменах
+  при 45 сбоях поисковиков. Все события, ошибки и подписи отображаются на языке интерфейса.
+- Сеть во время проверки была нестабильной: Wikipedia, Bing, Jina Reader и Mojeek периодически
+  не отвечали, DuckDuckGo HTML возвращал анти-бот страницу. Один из повторных быстрых поисков
+  завершился ошибкой «ступени исчерпаны», потому что все три поисковика не ответили; это
+  корректное поведение, но без Docker (SearXNG) запасных поисковиков больше нет.
+- Найдено и исправлено по ходу проверки: подмена статьи общим RSS в ступени `official`;
+  единственный поисковик без Docker (добавлены DDGS и Wikipedia); принятие нерелевантной выдачи
+  (добавлена проверка релевантности); зависание LLM-запросов на 10 минут (таймауты и повторы);
+  причина отказа LLM-диагностики не попадала в журнал.
 
-## Внешние интеграции, не подтверждённые этой сессией
+## Что не проверялось
 
-Платные API и CAPTCHA-сервисы не вызывались. Их контракты и переходы проверены с подменами. Полный 20 + 20 gate конкретного нового сгенерированного Python-адаптера в этой сессии не запускался; инфраструктура Docker runtime и Chromium проверена отдельно. Реальная доступность бесплатных прокси нестабильна; рабочий пул формируется только после сетевой проверки каждого адреса.
-
-Код контуров реализован, но эти ограничения проверки нельзя трактовать как успешное внешнее испытание всех интеграций или всех ресурсов каталога.
+- Платные API (Tavily, Firecrawl) и сервисы CAPTCHA: вызывались только их подмены в тестах.
+- macOS: установщик `install.sh` проверен только на Linux.
 
 ## Воспроизведение
 
-```powershell
-.venv\Scripts\python -m pip install -r backend/requirements-dev.txt
-.venv\Scripts\python -m playwright install chromium
-.venv\Scripts\python -m pytest backend -q
-npm.cmd --prefix frontend run build
-.venv\Scripts\python scripts/browser_smoke.py
-.venv\Scripts\python scripts/live_providers.py
-docker compose up --build
+```bash
+inet doctor
+.venv/bin/python -m pytest backend -q
+npm --prefix frontend run build
+inet serve &                          # затем:
+.venv/bin/python scripts/capture_readme.py
+.venv/bin/python scripts/make_demo_video.py
+.venv/bin/python scripts/live_providers.py
 ```
-
-После запуска Docker и настройки LLM: в лаборатории запустите discovery, дождитесь generate/evaluate, откройте отчёт версии, затем выполните fetch через неё. На карте и в аудите будут видны canary и результаты реального исполнения. Без прохождения gate активного указателя на кандидата не появится.
-
-Браузерный сценарий поднимает API и статический сервер на loopback-портах 8007/3007 с временной БД и отключённой фоновой автоматизацией; в конце останавливает свои процессы. Снимки находятся в игнорируемом `artifacts/`: главная, ответ, карта, лаборатория и мобильная главная.

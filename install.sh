@@ -39,13 +39,16 @@ uv pip install --python .venv/bin/python -r backend/requirements-browser.txt -e 
 if [ "${INET_NO_BROWSER:-0}" != "1" ]; then
   say "Installing Chromium for the browser fallback"
   # On Linux Chromium also needs system libraries; install them when we are allowed to.
+  DEPS=""
   if [ "$(uname -s)" = "Linux" ] && { [ "$(id -u)" = "0" ] || sudo -n true 2>/dev/null; }; then
-    .venv/bin/python -m playwright install --with-deps chromium || warn "Chromium install failed; set ENABLE_BROWSER=false"
-  else
-    .venv/bin/python -m playwright install chromium || warn "Chromium install failed; set ENABLE_BROWSER=false"
-    if [ "$(uname -s)" = "Linux" ]; then
-      warn "If the browser fallback fails, run: sudo $ROOT/.venv/bin/python -m playwright install-deps chromium"
-    fi
+    DEPS="--with-deps"
+  fi
+  # Large downloads from the Playwright CDN can time out; retry once before giving up.
+  if ! .venv/bin/python -m playwright install $DEPS chromium && ! .venv/bin/python -m playwright install $DEPS chromium; then
+    warn "Chromium install failed; rerun .venv/bin/python -m playwright install chromium or set ENABLE_BROWSER=false in .env"
+  fi
+  if [ "$(uname -s)" = "Linux" ] && [ -z "$DEPS" ]; then
+    warn "If the browser fallback fails, run: sudo $ROOT/.venv/bin/python -m playwright install-deps chromium"
   fi
 fi
 
@@ -56,9 +59,13 @@ if [ "${INET_NO_UI:-0}" != "1" ] && [ ! -f frontend/build/index.html ]; then
     npm --prefix frontend ci --no-audit --no-fund && npm --prefix frontend run build
   else
     say "Downloading prebuilt web UI"
-    mkdir -p frontend/build
-    curl -fsSL "$REPO/releases/latest/download/inet-ui.tar.gz" | tar -xz -C frontend/build \
-      || warn "No prebuilt UI found. API, CLI and MCP work; install Node.js to build the UI."
+    ARCHIVE=$(mktemp)
+    if curl -fsSL -o "$ARCHIVE" "$REPO/releases/latest/download/inet-ui.tar.gz" 2>/dev/null; then
+      mkdir -p frontend/build && tar -xzf "$ARCHIVE" -C frontend/build
+    else
+      warn "No prebuilt UI found. API, CLI and MCP work; install Node.js to build the UI."
+    fi
+    rm -f "$ARCHIVE"
   fi
 fi
 

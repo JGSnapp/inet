@@ -49,7 +49,7 @@ API discovery отделяет факты от маркетинговых зая
 
 Планировщик периодически запускает `pipeline_monitor` и `api_monitor`. Первый исполняет сохранённый probe URL, обновляет canary-наблюдения и ставит repair после дрейфа. Второй заново проверяет формат, digest и rate-limit headers API; две последовательные ошибки переводят кандидата в `degraded`.
 
-Основные модули: `research.py`, `automation.py`, `registry.py`, `evaluation.py`, `providers.py`, `extended_providers.py`, `proxies.py`, `vault.py`, `captcha.py`. `api.py` управляет lifecycle. Документный шаблон `agent.py`, `database.py`, `tools.py`, `db/` сохранён, но текущий веб-runtime его не вызывает.
+Основные модули: `research.py`, `automation.py`, `registry.py`, `evaluation.py`, `providers.py`, `extended_providers.py`, `proxies.py`, `vault.py`, `captcha.py`. `api.py` управляет lifecycle, `integrations.py` содержит синхронные и Tavily/Firecrawl-совместимые эндпоинты, `cli.py` — командную строку. MCP-сервер, Python SDK и LangChain-инструменты находятся в `sdk/python`.
 
 ## Разработка и продвижение
 
